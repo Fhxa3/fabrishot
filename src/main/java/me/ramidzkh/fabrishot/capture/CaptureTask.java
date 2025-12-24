@@ -26,9 +26,9 @@ package me.ramidzkh.fabrishot.capture;
 
 import me.ramidzkh.fabrishot.config.Config;
 import me.ramidzkh.fabrishot.event.FramebufferCaptureCallback;
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import net.minecraft.util.Util;
 
 import java.io.IOException;
 import java.nio.file.Path;

@@ -1,5 +1,5 @@
 plugins {
-    id("fabric-loom") version "1.14-SNAPSHOT"
+    id("net.fabricmc.fabric-loom") version "1.14-SNAPSHOT"
     id("com.matthewprenger.cursegradle") version "1.4.0"
     id("com.modrinth.minotaur") version "2.8.7"
 }
@@ -7,7 +7,7 @@ plugins {
 group = "me.ramidzkh"
 version = System.getenv("FABRISHOT_VERSION") ?: "0.0.0"
 
-String minecraft_version = "1.21.9"
+String minecraft_version = "26.1-snapshot-1"
 
 repositories {
     maven {
@@ -31,17 +31,16 @@ repositories {
 
 dependencies {
     minecraft("net.minecraft:minecraft:${minecraft_version}")
-    mappings(loom.officialMojangMappings())
-    modImplementation("net.fabricmc:fabric-loader:0.17.2")
+    implementation("net.fabricmc:fabric-loader:0.18.3")
 
-    modImplementation("net.fabricmc.fabric-api:fabric-api:0.134.0+1.21.9")
-    modImplementation("com.terraformersmc:modmenu:16.0.0-rc.1")
-    modImplementation("me.shedaniel.cloth:cloth-config-fabric:19.0.147")
+    implementation("net.fabricmc.fabric-api:fabric-api:0.140.2+26.1")
+    //implementation("com.terraformersmc:modmenu:18.0.0-alpha.2")
+    //implementation("me.shedaniel.cloth:cloth-config-fabric:19.0.147")
 }
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
@@ -97,6 +96,7 @@ System.getenv("CURSEFORGE")?.with { String key ->
 
 ////////////////
 // Modrinth
+/*
 modrinth {
     token.set(System.getenv("MODRINTH"))
     projectId.set("fabrishot")
@@ -120,7 +120,17 @@ modrinth {
         optional.project("cloth-config")
     }
 }
-
+*/
 tasks.modrinth.onlyIf {
     System.getenv("MODRINTH")
+}
+
+sourceSets {
+    main {
+        java {
+            exclude 'me/ramidzkh/fabrishot/config/ScalingPresetEntry.java'
+            exclude 'me/ramidzkh/fabrishot/config/ModMenuBridge.java'
+            exclude 'me/ramidzkh/fabrishot/config/ClothConfigBridge.java'
+        }
+    }
 }
