@@ -55,7 +55,7 @@ public class Fabrishot {
 
     private static void printFileLink(Path path) {
         Component text = Component.literal(path.toFile().getName()).withStyle(ChatFormatting.UNDERLINE).withStyle(style -> style.withClickEvent(new ClickEvent.OpenFile(path)));
-        Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.getChat().addMessage(Component.translatable("screenshot.success", text)));
+        Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.getChat().addClientSystemMessage(Component.translatable("screenshot.success", text)));
     }
 
     public static void initialize() {
