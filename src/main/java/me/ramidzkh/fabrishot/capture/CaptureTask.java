@@ -45,15 +45,15 @@ public class CaptureTask {
 
     public boolean onRenderTick() {
         if (frame == 0) {
-            hudHidden = Minecraft.getInstance().gameRenderer.getGameRenderState().guiRenderState.isHudHidden;
-            Minecraft.getInstance().gameRenderer.getGameRenderState().guiRenderState.isHudHidden |= Config.HIDE_HUD;
+            hudHidden = Minecraft.getInstance().gameRenderer.gameRenderState().guiRenderState.isHudHidden;
+            Minecraft.getInstance().gameRenderer.gameRenderState().guiRenderState.isHudHidden |= Config.HIDE_HUD;
             frame++;
             return false;
         } else if (frame < Config.CAPTURE_DELAY) {
             frame++;
             return false;
         } else {
-            Screenshot.takeScreenshot(Minecraft.getInstance().getMainRenderTarget(), image -> {
+            Screenshot.takeScreenshot(Minecraft.getInstance().gameRenderer.mainRenderTarget(), image -> {
                 Util.ioPool().execute(() -> {
                     try (image) {
                         FramebufferCaptureCallback.EVENT.invoker().onCapture(image);
@@ -67,7 +67,7 @@ public class CaptureTask {
                 });
             });
 
-            Minecraft.getInstance().gameRenderer.getGameRenderState().guiRenderState.isHudHidden = hudHidden;
+            Minecraft.getInstance().gameRenderer.gameRenderState().guiRenderState.isHudHidden = hudHidden;
             return true;
         }
     }

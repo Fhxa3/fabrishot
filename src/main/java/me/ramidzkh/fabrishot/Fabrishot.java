@@ -78,7 +78,7 @@ public class Fabrishot {
     }
 
     private static void refresh() {
-        var framebuffer = Minecraft.getInstance().getMainRenderTarget();
+        var framebuffer = Minecraft.getInstance().gameRenderer.mainRenderTarget();
         if (framebuffer == null) return;
 
         Window window = Minecraft.getInstance().getWindow();
