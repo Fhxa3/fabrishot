@@ -54,8 +54,17 @@ public class Fabrishot {
     private static CaptureTask task;
 
     private static void printFileLink(Path path) {
-        Component text = Component.literal(path.toFile().getName()).withStyle(ChatFormatting.UNDERLINE).withStyle(style -> style.withClickEvent(new ClickEvent.OpenFile(path)));
-        Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.hud.getChat().addClientSystemMessage(Component.translatable("screenshot.success", text)));
+        Minecraft minecraft = Minecraft.getInstance();
+
+        Component fileText = Component.literal(path.toFile().getName())
+                .withStyle(ChatFormatting.UNDERLINE)
+                .withStyle(style -> style.withClickEvent(new ClickEvent.OpenFile(path)));
+        minecraft.execute(() -> {
+            Component message = Component.translatable("screenshot.success", fileText);
+
+            minecraft.gui.hud.getChat().addClientSystemMessage(message);
+            minecraft.getNarrator().saySystemQueued(message);
+        });
     }
 
     public static void initialize() {
