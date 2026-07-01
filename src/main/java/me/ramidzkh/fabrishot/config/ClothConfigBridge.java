@@ -163,6 +163,30 @@ public class ClothConfigBridge implements ConfigScreenFactory<Screen> {
                 .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.TIFF))
                 .build());
 
+        // AVIF: cpu-used
+        category.addEntry(entryBuilder.startIntSlider(Component.translatable("fabrishot.config.avif_cpu_used"), Config.AVIF_CPU_USED, 0, 8)
+                .setTooltip(Component.translatable("fabrishot.config.avif_cpu_used.tooltip"))
+                .setDefaultValue(4)
+                .setSaveConsumer(i -> Config.AVIF_CPU_USED = i)
+                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.AVIF))
+                .build());
+
+        // AVIF: crf
+        category.addEntry(entryBuilder.startIntSlider(Component.translatable("fabrishot.config.avif_crf"), Config.AVIF_CRF, 0, 63)
+                .setTooltip(Component.translatable("fabrishot.config.avif_crf.tooltip"))
+                .setDefaultValue(24)
+                .setSaveConsumer(i -> Config.AVIF_CRF = i)
+                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.AVIF))
+                .build());
+
+        // AVIF: tune
+        category.addEntry(entryBuilder.startEnumSelector(Component.translatable("fabrishot.config.avif_tune"), AvifTune.class, Config.AVIF_TUNE)
+                .setTooltip(Component.translatable("fabrishot.config.avif_tune.tooltip"))
+                .setDefaultValue(AvifTune.SSIM)
+                .setSaveConsumer(t -> Config.AVIF_TUNE = t)
+                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.AVIF))
+                .build());
+
         // ── Colour space ──
 
         EnumListEntry<ColorSpaceMode> colorSpaceMode = entryBuilder.startEnumSelector(Component.translatable("fabrishot.config.color_space_mode"), ColorSpaceMode.class, Config.COLOR_SPACE_MODE)
@@ -198,7 +222,10 @@ public class ClothConfigBridge implements ConfigScreenFactory<Screen> {
         if (!FabricLoader.getInstance().isModLoaded("iris")) {
             return Component.translatable("fabrishot.config.iris.not_installed");
         }
-        var cs = ColorSpaceHelper.resolve();
-        return Component.translatable("fabrishot.config.iris.detected", Component.literal(cs.name()));
+        var irisCs = ColorSpaceHelper.detectIrisColorSpace();
+        if (irisCs != null) {
+            return Component.translatable("fabrishot.config.iris.detected", Component.literal(irisCs.name()));
+        }
+        return Component.translatable("fabrishot.config.iris.detection_failed");
     }
 }

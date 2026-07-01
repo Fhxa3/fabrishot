@@ -58,6 +58,11 @@ public class Config {
     public static ColorSpaceMode COLOR_SPACE_MODE = ColorSpaceMode.SRGB;
     public static FabriColorSpace CUSTOM_COLOR_SPACE = FabriColorSpace.SRGB;
 
+    // AVIF encoding
+    public static int AVIF_CPU_USED = 4;
+    public static int AVIF_CRF = 24;
+    public static AvifTune AVIF_TUNE = AvifTune.SSIM;
+
     private static final Path CONFIG = FabricLoader.getInstance().getConfigDir().resolve("fabrishot.properties");
 
     static {
@@ -81,6 +86,9 @@ public class Config {
             Config.TIFF_COMPRESSION = TiffCompression.valueOf(properties.getProperty("tiff_compression", "LZW"));
             Config.COLOR_SPACE_MODE = ColorSpaceMode.valueOf(properties.getProperty("color_space_mode", "SRGB"));
             Config.CUSTOM_COLOR_SPACE = FabriColorSpace.valueOf(properties.getProperty("custom_color_space", "SRGB"));
+            Config.AVIF_CPU_USED = Integer.parseInt(properties.getProperty("avif_cpu_used", "4"));
+            Config.AVIF_CRF = Integer.parseInt(properties.getProperty("avif_crf", "24"));
+            Config.AVIF_TUNE = AvifTune.valueOf(properties.getProperty("avif_tune", "SSIM"));
         } catch (Exception ignored) {
             save();
         }
@@ -104,6 +112,9 @@ public class Config {
         properties.put("tiff_compression", String.valueOf(Config.TIFF_COMPRESSION));
         properties.put("color_space_mode", String.valueOf(Config.COLOR_SPACE_MODE));
         properties.put("custom_color_space", String.valueOf(Config.CUSTOM_COLOR_SPACE));
+        properties.put("avif_cpu_used", String.valueOf(Config.AVIF_CPU_USED));
+        properties.put("avif_crf", String.valueOf(Config.AVIF_CRF));
+        properties.put("avif_tune", String.valueOf(Config.AVIF_TUNE));
 
         try (BufferedWriter writer = Files.newBufferedWriter(CONFIG)) {
             properties.store(writer, "Fabrishot screenshot config");

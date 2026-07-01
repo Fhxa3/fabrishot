@@ -16,10 +16,6 @@ public final class ColorSpaceHelper {
 
     private static final Logger LOGGER = LogManager.getLogger(ColorSpaceHelper.class);
 
-    /** Cached Iris colour space (null = not installed or not yet read). */
-    private static volatile FabriColorSpace cachedIrisColorSpace;
-    private static volatile boolean irisProbed;
-
     private ColorSpaceHelper() {
     }
 
@@ -61,12 +57,15 @@ public final class ColorSpaceHelper {
 
     // ---- Iris reflection ----
 
-    private static FabriColorSpace detectIrisColorSpace() {
-        if (irisProbed) {
-            return cachedIrisColorSpace;
-        }
-        irisProbed = true;
-
+    /**
+     * Reads the current Iris colour space via reflection.
+     * Called on every screenshot and when the config screen is opened —
+     * low frequency, so no caching is needed.
+     *
+     * @return the Iris colour space, or {@code null} if Iris is not installed
+     *         or the value cannot be read
+     */
+    public static FabriColorSpace detectIrisColorSpace() {
         if (!FabricLoader.getInstance().isModLoaded("iris")) {
             return null;
         }
@@ -75,8 +74,12 @@ public final class ColorSpaceHelper {
             Class<?> videoSettingsClass = Class.forName("net.irisshaders.iris.gui.option.IrisVideoSettings");
             Object colorSpace = videoSettingsClass.getField("colorSpace").get(null);
             if (colorSpace instanceof Enum<?> e) {
-                cachedIrisColorSpace = FabriColorSpace.valueOf(e.name());
-                return cachedIrisColorSpace;
+                try {
+                    return FabriColorSpace.valueOf(e.name());
+                } catch (IllegalArgumentException ex) {
+                    LOGGER.warn("Iris colour space '{}' has no Fabrishot equivalent", e.name(), ex);
+                    return null;
+                }
             }
         } catch (ClassNotFoundException e) {
             LOGGER.debug("Iris video settings class not found (different Iris version?)", e);
@@ -84,9 +87,7 @@ public final class ColorSpaceHelper {
             LOGGER.debug("Iris colorSpace field not found", e);
         } catch (IllegalAccessException e) {
             LOGGER.debug("Cannot access Iris colorSpace field", e);
-        } catch (IllegalArgumentException e) {
-            LOGGER.debug("Unknown Iris colour space value", e);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             LOGGER.warn("Unexpected error detecting Iris colour space", e);
         }
         return null;

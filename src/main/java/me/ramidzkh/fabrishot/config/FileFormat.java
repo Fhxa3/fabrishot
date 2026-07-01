@@ -8,6 +8,7 @@ public enum FileFormat {
     JPG(false),
     WEBP(true),
     TIFF(true),
+    AVIF(true),
     ;
 
     private final boolean needsFfmpeg;

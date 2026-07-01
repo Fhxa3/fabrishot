@@ -25,6 +25,7 @@
 package me.ramidzkh.fabrishot.capture;
 
 import com.mojang.blaze3d.platform.NativeImage;
+import me.ramidzkh.fabrishot.config.AvifTune;
 import me.ramidzkh.fabrishot.config.Config;
 import me.ramidzkh.fabrishot.config.FileFormat;
 import me.ramidzkh.fabrishot.config.JpgColorSampling;
@@ -162,6 +163,21 @@ public final class FfmpegWriter {
                 recorder.setVideoCodec(avcodec.AV_CODEC_ID_TIFF);
                 recorder.setPixelFormat(components == 4 ? avutil.AV_PIX_FMT_RGBA : avutil.AV_PIX_FMT_RGB24);
                 recorder.setVideoOption("compression_algo", Config.TIFF_COMPRESSION.ffmpegValue());
+            }
+            case AVIF -> {
+                recorder.setVideoCodec(avcodec.AV_CODEC_ID_AV1);
+                recorder.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
+                // Hardcoded: single-image AVIF encoding
+                recorder.setVideoOption("usage", "allintra");
+                recorder.setVideoOption("still-picture", "1");
+                recorder.setVideoBitrate(0);
+                recorder.setVideoOption("enable-intrabc", "1");
+                recorder.setVideoOption("enable-palette", "1");
+                recorder.setVideoOption("row-mt", "1");
+                // User-configurable
+                recorder.setVideoOption("cpu-used", String.valueOf(Config.AVIF_CPU_USED));
+                recorder.setVideoOption("crf", String.valueOf(Config.AVIF_CRF));
+                recorder.setVideoOption("tune", Config.AVIF_TUNE.ffmpegValue());
             }
         }
     }
