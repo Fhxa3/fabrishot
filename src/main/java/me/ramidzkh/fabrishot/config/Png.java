@@ -51,7 +51,7 @@ public final class Png {
 
     public static void configureRecorder(FFmpegFrameRecorder recorder, int components) {
         recorder.setVideoCodec(avcodec.AV_CODEC_ID_PNG);
-        recorder.setPixelFormat(components == 4 ? avutil.AV_PIX_FMT_RGBA : avutil.AV_PIX_FMT_RGB24);
+        recorder.setPixelFormat(avutil.AV_PIX_FMT_RGB24);
         recorder.setVideoOption("compression_level", String.valueOf(compressionLevel));
         recorder.setVideoOption("pred", "5");
     }

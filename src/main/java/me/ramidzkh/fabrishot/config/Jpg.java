@@ -28,6 +28,7 @@ import java.util.Properties;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
 import me.shedaniel.clothconfig2.api.Requirement;
+import me.shedaniel.clothconfig2.gui.entries.BooleanListEntry;
 import me.shedaniel.clothconfig2.gui.entries.EnumListEntry;
 import net.minecraft.network.chat.Component;
 import org.bytedeco.ffmpeg.global.avcodec;
