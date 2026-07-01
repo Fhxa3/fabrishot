@@ -49,7 +49,7 @@ public class FramebufferWriter {
 
         if (FlashbackDetector.AVAILABLE) {
             // FFmpeg available: route all formats through it for unified quality control
-            FfmpegWriter.write(image, file, format);
+            FFmpegWriter.write(image, file, format);
         } else {
             // No FFmpeg: PNG/JPG use STB built-in; formats that need FFmpeg fall back to PNG
             if (format.needsFfmpeg()) {

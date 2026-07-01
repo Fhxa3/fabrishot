@@ -8,7 +8,7 @@
     "KeyMappingAccessor",
     "KeyboardMixin",
     "MinecraftClientMixin",
-    "RenderscaleCommonClassMixin",
+    "RenderScaleMixin",
     "WindowMixin"
   ],
   "injectors": {

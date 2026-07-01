@@ -103,89 +103,29 @@ public class ClothConfigBridge implements ConfigScreenFactory<Screen> {
 
         // ── Format & encoding ──
 
+        // Flashback status indicator
+        category.addEntry(entryBuilder.startTextDescription(flashbackStatus()).build());
+
         EnumListEntry<FileFormat> formatSelector = entryBuilder.startEnumSelector(Component.translatable("fabrishot.config.file_format"), FileFormat.class, Config.CAPTURE_FILE_FORMAT)
                 .setDefaultValue(FileFormat.PNG)
                 .setSaveConsumer(t -> Config.CAPTURE_FILE_FORMAT = t)
                 .build();
         category.addEntry(formatSelector);
 
-        // Flashback status indicator
-        category.addEntry(entryBuilder.startTextDescription(flashbackStatus()).build());
+        // PNG encoding
+        Png.addEntries(category, entryBuilder, formatSelector);
 
-        // PNG: compression level
-        category.addEntry(entryBuilder.startIntSlider(Component.translatable("fabrishot.config.png_compression"), Config.PNG_COMPRESSION_LEVEL, 0, 9)
-                .setTooltip(Component.translatable("fabrishot.config.png_compression.tooltip"))
-                .setDefaultValue(6)
-                .setSaveConsumer(i -> Config.PNG_COMPRESSION_LEVEL = i)
-                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.PNG))
-                .build());
+        // JPEG encoding
+        Jpg.addEntries(category, entryBuilder, formatSelector);
 
-        // JPEG: quality
-        category.addEntry(entryBuilder.startIntSlider(Component.translatable("fabrishot.config.jpg_quality"), Config.JPG_QUALITY, 2, 31)
-                .setTooltip(Component.translatable("fabrishot.config.jpg_quality.tooltip"))
-                .setDefaultValue(2)
-                .setSaveConsumer(i -> Config.JPG_QUALITY = i)
-                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.JPG))
-                .build());
+        // WebP encoding
+        Webp.addEntries(category, entryBuilder, formatSelector);
 
-        // JPEG: color sampling
-        category.addEntry(entryBuilder.startEnumSelector(Component.translatable("fabrishot.config.jpg_color_sampling"), JpgColorSampling.class, Config.JPG_COLOR_SAMPLING)
-                .setTooltip(Component.translatable("fabrishot.config.jpg_color_sampling.tooltip"))
-                .setDefaultValue(JpgColorSampling.YUV444)
-                .setSaveConsumer(s -> Config.JPG_COLOR_SAMPLING = s)
-                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.JPG))
-                .build());
+        // TIFF encoding
+        Tiff.addEntries(category, entryBuilder, formatSelector);
 
-        // WebP: lossless (above quality)
-        var webpLossless = entryBuilder.startBooleanToggle(Component.translatable("fabrishot.config.webp_lossless"), Config.WEBP_LOSSLESS)
-                .setTooltip(Component.translatable("fabrishot.config.webp_lossless.tooltip"))
-                .setDefaultValue(false)
-                .setSaveConsumer(b -> Config.WEBP_LOSSLESS = b)
-                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.WEBP))
-                .build();
-        category.addEntry(webpLossless);
-
-        // WebP: quality (hidden when lossless is on)
-        category.addEntry(entryBuilder.startIntSlider(Component.translatable("fabrishot.config.webp_quality"), Config.WEBP_QUALITY, 0, 100)
-                .setTooltip(Component.translatable("fabrishot.config.webp_quality.tooltip"))
-                .setDefaultValue(80)
-                .setSaveConsumer(i -> Config.WEBP_QUALITY = i)
-                .setDisplayRequirement(Requirement.all(
-                        Requirement.isValue(formatSelector, FileFormat.WEBP),
-                        Requirement.isFalse(webpLossless)))
-                .build());
-
-        // TIFF: compression
-        category.addEntry(entryBuilder.startEnumSelector(Component.translatable("fabrishot.config.tiff_compression"), TiffCompression.class, Config.TIFF_COMPRESSION)
-                .setTooltip(Component.translatable("fabrishot.config.tiff_compression.tooltip"))
-                .setDefaultValue(TiffCompression.LZW)
-                .setSaveConsumer(c -> Config.TIFF_COMPRESSION = c)
-                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.TIFF))
-                .build());
-
-        // AVIF: cpu-used
-        category.addEntry(entryBuilder.startIntSlider(Component.translatable("fabrishot.config.avif_cpu_used"), Config.AVIF_CPU_USED, 0, 8)
-                .setTooltip(Component.translatable("fabrishot.config.avif_cpu_used.tooltip"))
-                .setDefaultValue(4)
-                .setSaveConsumer(i -> Config.AVIF_CPU_USED = i)
-                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.AVIF))
-                .build());
-
-        // AVIF: crf
-        category.addEntry(entryBuilder.startIntSlider(Component.translatable("fabrishot.config.avif_crf"), Config.AVIF_CRF, 0, 63)
-                .setTooltip(Component.translatable("fabrishot.config.avif_crf.tooltip"))
-                .setDefaultValue(24)
-                .setSaveConsumer(i -> Config.AVIF_CRF = i)
-                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.AVIF))
-                .build());
-
-        // AVIF: tune
-        category.addEntry(entryBuilder.startEnumSelector(Component.translatable("fabrishot.config.avif_tune"), AvifTune.class, Config.AVIF_TUNE)
-                .setTooltip(Component.translatable("fabrishot.config.avif_tune.tooltip"))
-                .setDefaultValue(AvifTune.SSIM)
-                .setSaveConsumer(t -> Config.AVIF_TUNE = t)
-                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.AVIF))
-                .build());
+        // AVIF encoding
+        Avif.addEntries(category, entryBuilder, formatSelector);
 
         // ── Colour space ──
 

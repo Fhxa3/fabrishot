@@ -25,18 +25,18 @@
 package me.ramidzkh.fabrishot.capture;
 
 import com.mojang.blaze3d.platform.NativeImage;
-import me.ramidzkh.fabrishot.config.AvifTune;
-import me.ramidzkh.fabrishot.config.Config;
+import me.ramidzkh.fabrishot.config.Avif;
 import me.ramidzkh.fabrishot.config.FileFormat;
-import me.ramidzkh.fabrishot.config.JpgColorSampling;
+import me.ramidzkh.fabrishot.config.Jpg;
+import me.ramidzkh.fabrishot.config.Png;
+import me.ramidzkh.fabrishot.config.Tiff;
+import me.ramidzkh.fabrishot.config.Webp;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bytedeco.ffmpeg.global.avcodec;
-import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.Pointer;
 import org.bytedeco.javacv.FFmpegFrameRecorder;
@@ -50,9 +50,9 @@ import org.bytedeco.javacv.Frame;
  * All encoding goes through a temporary file that is atomically renamed on success,
  * preventing partially-written output on failure.
  */
-public final class FfmpegWriter {
+public final class FFmpegWriter {
 
-    private static final Logger LOGGER = LogManager.getLogger(FfmpegWriter.class);
+    private static final Logger LOGGER = LogManager.getLogger(FFmpegWriter.class);
 
     static {
         // CRITICAL: must be called before any recorder is created.
@@ -60,7 +60,7 @@ public final class FfmpegWriter {
         FFmpegLogCallback.set();
     }
 
-    private FfmpegWriter() {
+    private FFmpegWriter() {
     }
 
     /**
@@ -143,50 +143,11 @@ public final class FfmpegWriter {
      */
     private static void configureForFormat(FFmpegFrameRecorder recorder, FileFormat format, int components) {
         switch (format) {
-            case PNG -> {
-                recorder.setVideoCodec(avcodec.AV_CODEC_ID_PNG);
-                recorder.setPixelFormat(components == 4 ? avutil.AV_PIX_FMT_RGBA : avutil.AV_PIX_FMT_RGB24);
-                recorder.setVideoOption("compression_level", String.valueOf(Config.PNG_COMPRESSION_LEVEL));
-            }
-            case JPG -> {
-                recorder.setVideoCodec(avcodec.AV_CODEC_ID_MJPEG);
-                recorder.setPixelFormat(colorSamplingToPixelFormat(Config.JPG_COLOR_SAMPLING));
-                recorder.setVideoOption("q:v", String.valueOf(Config.JPG_QUALITY));
-            }
-            case WEBP -> {
-                recorder.setVideoCodec(avcodec.AV_CODEC_ID_WEBP);
-                recorder.setPixelFormat(avutil.AV_PIX_FMT_BGRA);
-                recorder.setVideoOption("lossless", Config.WEBP_LOSSLESS ? "1" : "0");
-                recorder.setVideoQuality(Config.WEBP_QUALITY);
-            }
-            case TIFF -> {
-                recorder.setVideoCodec(avcodec.AV_CODEC_ID_TIFF);
-                recorder.setPixelFormat(components == 4 ? avutil.AV_PIX_FMT_RGBA : avutil.AV_PIX_FMT_RGB24);
-                recorder.setVideoOption("compression_algo", Config.TIFF_COMPRESSION.ffmpegValue());
-            }
-            case AVIF -> {
-                recorder.setVideoCodec(avcodec.AV_CODEC_ID_AV1);
-                recorder.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
-                // Hardcoded: single-image AVIF encoding
-                recorder.setVideoOption("usage", "allintra");
-                recorder.setVideoOption("still-picture", "1");
-                recorder.setVideoBitrate(0);
-                recorder.setVideoOption("enable-intrabc", "1");
-                recorder.setVideoOption("enable-palette", "1");
-                recorder.setVideoOption("row-mt", "1");
-                // User-configurable
-                recorder.setVideoOption("cpu-used", String.valueOf(Config.AVIF_CPU_USED));
-                recorder.setVideoOption("crf", String.valueOf(Config.AVIF_CRF));
-                recorder.setVideoOption("tune", Config.AVIF_TUNE.ffmpegValue());
-            }
+            case PNG -> Png.configureRecorder(recorder, components);
+            case JPG -> Jpg.configureRecorder(recorder);
+            case WEBP -> Webp.configureRecorder(recorder);
+            case TIFF -> Tiff.configureRecorder(recorder, components);
+            case AVIF -> Avif.configureRecorder(recorder);
         }
-    }
-
-    private static int colorSamplingToPixelFormat(JpgColorSampling sampling) {
-        return switch (sampling) {
-            case YUV444 -> avutil.AV_PIX_FMT_YUVJ444P;
-            case YUV422 -> avutil.AV_PIX_FMT_YUVJ422P;
-            case YUV420 -> avutil.AV_PIX_FMT_YUVJ420P;
-        };
     }
 }
