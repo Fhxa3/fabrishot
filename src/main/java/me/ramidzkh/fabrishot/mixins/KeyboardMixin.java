@@ -42,6 +42,10 @@ public class KeyboardMixin {
         if (((KeyMappingAccessor) Fabrishot.SCREENSHOT_BINDING).getMappedKey().equals(key)) {
             Fabrishot.startCapture();
         }
+
+        if (((KeyMappingAccessor) Fabrishot.STACKING_BINDING).getMappedKey().equals(key)) {
+            Fabrishot.startStackCapture();
+        }
     }
 
     @Inject(method = "handleGlobalKeyPress", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Screenshot;grab(Lnet/minecraft/client/Minecraft;Z)V"), cancellable = true)

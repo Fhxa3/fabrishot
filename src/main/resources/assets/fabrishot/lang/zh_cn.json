@@ -42,5 +42,16 @@
   "fabrishot.config.iris.not_installed": "未安装 Iris",
   "fabrishot.config.iris.detected": "Iris 色彩空间：%s",
   "fabrishot.config.iris.detection_failed": "Iris 色彩空间：检测失败",
-  "key.fabrishot.screenshot": "截图（高分辨率）"
+  "key.fabrishot.screenshot": "截图（高分辨率）",
+  "key.fabrishot.stack_screenshot": "堆栈截图",
+
+  "fabrishot.config.stacking_category": "图片堆栈",
+  "fabrishot.config.stack_count": "堆栈帧数",
+  "fabrishot.config.stack_count.tooltip": "拍摄并合成的截图数量 (2-64)",
+  "fabrishot.config.stack_interval": "帧间隔",
+  "fabrishot.config.stack_interval.tooltip": "每帧之间的等待刻数 (1刻 = 1/20秒)",
+  "fabrishot.config.stack_mode": "堆栈模式",
+  "fabrishot.config.stack_mode.tooltip": "均值：模拟长曝光\n最大值：光轨/星轨\n最小值：保留暗部\n中值：消除移动物体",
+
+  "fabrishot.stack.progress": "堆栈拍摄 %s/%s..."
 }

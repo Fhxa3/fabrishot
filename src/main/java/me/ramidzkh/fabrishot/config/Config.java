@@ -50,6 +50,11 @@ public class Config {
     public static ColorSpaceMode COLOR_SPACE_MODE = ColorSpaceMode.SRGB;
     public static FabriColorSpace CUSTOM_COLOR_SPACE = FabriColorSpace.SRGB;
 
+    // Stacking
+    public static int STACK_COUNT = 8;
+    public static int STACK_INTERVAL_TICKS = 1;
+    public static StackMode STACK_MODE = StackMode.AVERAGE;
+
     private static final Path CONFIG = FabricLoader.getInstance().getConfigDir().resolve("fabrishot.properties");
 
     static {
@@ -72,6 +77,9 @@ public class Config {
             Config.COLOR_SPACE_MODE = ColorSpaceMode.valueOf(properties.getProperty("color_space_mode", "SRGB"));
             Config.CUSTOM_COLOR_SPACE = FabriColorSpace.valueOf(properties.getProperty("custom_color_space", "SRGB"));
             Avif.load(properties);
+            Config.STACK_COUNT = Integer.parseInt(properties.getProperty("stack_count", "8"));
+            Config.STACK_INTERVAL_TICKS = Integer.parseInt(properties.getProperty("stack_interval", "1"));
+            Config.STACK_MODE = StackMode.valueOf(properties.getProperty("stack_mode", "AVERAGE"));
         } catch (Exception ignored) {
             save();
         }
@@ -94,6 +102,9 @@ public class Config {
         properties.put("color_space_mode", String.valueOf(Config.COLOR_SPACE_MODE));
         properties.put("custom_color_space", String.valueOf(Config.CUSTOM_COLOR_SPACE));
         Avif.save(properties);
+        properties.put("stack_count", String.valueOf(Config.STACK_COUNT));
+        properties.put("stack_interval", String.valueOf(Config.STACK_INTERVAL_TICKS));
+        properties.put("stack_mode", String.valueOf(Config.STACK_MODE));
 
         try (BufferedWriter writer = Files.newBufferedWriter(CONFIG)) {
             properties.store(writer, "Fabrishot screenshot config");

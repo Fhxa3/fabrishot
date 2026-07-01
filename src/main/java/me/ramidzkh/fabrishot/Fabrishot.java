@@ -27,6 +27,7 @@ package me.ramidzkh.fabrishot;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.Window;
 import me.ramidzkh.fabrishot.capture.CaptureTask;
+import me.ramidzkh.fabrishot.capture.StackingCaptureTask;
 import me.ramidzkh.fabrishot.config.Config;
 import me.ramidzkh.fabrishot.event.ScreenshotSaveCallback;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -51,7 +52,14 @@ public class Fabrishot {
             GLFW.GLFW_KEY_F9,
             KeyMapping.Category.MISC);
 
+    public static final KeyMapping STACKING_BINDING = new KeyMapping(
+            "key.fabrishot.stack_screenshot",
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_F10,
+            KeyMapping.Category.MISC);
+
     private static CaptureTask task;
+    private static StackingCaptureTask stackTask;
 
     private static void printFileLink(Path path) {
         Minecraft minecraft = Minecraft.getInstance();
@@ -69,12 +77,37 @@ public class Fabrishot {
 
     public static void initialize() {
         KeyMappingHelper.registerKeyMapping(SCREENSHOT_BINDING);
+        KeyMappingHelper.registerKeyMapping(STACKING_BINDING);
         ScreenshotSaveCallback.EVENT.register(Fabrishot::printFileLink);
+
+        // Clean up any leftover stack temp files on shutdown
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            Path tempDir = Minecraft.getInstance().gameDirectory.toPath()
+                    .resolve(".fabrishot").resolve("stack_temp");
+            try {
+                if (Files.exists(tempDir)) {
+                    try (var files = Files.list(tempDir)) {
+                        files.forEach(f -> {
+                            try { Files.deleteIfExists(f); } catch (IOException ignored) {}
+                        });
+                    }
+                    Files.deleteIfExists(tempDir);
+                }
+            } catch (IOException ignored) {
+            }
+        }));
     }
 
     public static void startCapture() {
-        if (task == null) {
+        if (task == null && stackTask == null) {
             task = new CaptureTask(getScreenshotFile(Minecraft.getInstance()));
+            refresh();
+        }
+    }
+
+    public static void startStackCapture() {
+        if (stackTask == null && task == null) {
+            stackTask = StackingCaptureTask.create(getScreenshotFile(Minecraft.getInstance()));
             refresh();
         }
     }
@@ -82,6 +115,11 @@ public class Fabrishot {
     public static void onRenderPreOrPost() {
         if (task != null && task.onRenderTick()) {
             task = null;
+            refresh();
+        }
+
+        if (stackTask != null && stackTask.onRenderTick()) {
+            stackTask = null;
             refresh();
         }
     }
@@ -129,6 +167,6 @@ public class Fabrishot {
     }
 
     public static boolean isInCapture() {
-        return task != null;
+        return task != null || stackTask != null;
     }
 }

@@ -148,6 +148,31 @@ public class ClothConfigBridge implements ConfigScreenFactory<Screen> {
                 .setDisplayRequirement(Requirement.isValue(colorSpaceMode, ColorSpaceMode.CUSTOM))
                 .build());
 
+        // ── Stacking ──
+
+        ConfigCategory stackingCategory = builder.getOrCreateCategory(Component.translatable("fabrishot.config.stacking_category"));
+
+        stackingCategory.addEntry(entryBuilder.startIntSlider(
+                        Component.translatable("fabrishot.config.stack_count"), Config.STACK_COUNT, 2, 64)
+                .setTooltip(Component.translatable("fabrishot.config.stack_count.tooltip"))
+                .setDefaultValue(8)
+                .setSaveConsumer(i -> Config.STACK_COUNT = i)
+                .build());
+
+        stackingCategory.addEntry(entryBuilder.startIntSlider(
+                        Component.translatable("fabrishot.config.stack_interval"), Config.STACK_INTERVAL_TICKS, 1, 100)
+                .setTooltip(Component.translatable("fabrishot.config.stack_interval.tooltip"))
+                .setDefaultValue(1)
+                .setSaveConsumer(i -> Config.STACK_INTERVAL_TICKS = i)
+                .build());
+
+        stackingCategory.addEntry(entryBuilder.startEnumSelector(
+                        Component.translatable("fabrishot.config.stack_mode"), StackMode.class, Config.STACK_MODE)
+                .setTooltip(Component.translatable("fabrishot.config.stack_mode.tooltip"))
+                .setDefaultValue(StackMode.AVERAGE)
+                .setSaveConsumer(m -> Config.STACK_MODE = m)
+                .build());
+
         return builder.build();
     }
 

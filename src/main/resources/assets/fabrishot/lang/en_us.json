@@ -41,5 +41,16 @@
   "fabrishot.config.iris.not_installed": "Iris is not installed",
   "fabrishot.config.iris.detected": "Iris colour space: %s",
   "fabrishot.config.iris.detection_failed": "Iris colour space: detection failed",
-  "key.fabrishot.screenshot": "Take large screenshot"
+  "key.fabrishot.screenshot": "Take large screenshot",
+  "key.fabrishot.stack_screenshot": "Take stacking screenshot",
+
+  "fabrishot.config.stacking_category": "Image Stacking",
+  "fabrishot.config.stack_count": "Stack frame count",
+  "fabrishot.config.stack_count.tooltip": "Number of screenshots to capture and merge together (2-64)",
+  "fabrishot.config.stack_interval": "Stack frame interval",
+  "fabrishot.config.stack_interval.tooltip": "Ticks to wait between each frame capture (1 tick = 1/20 sec)",
+  "fabrishot.config.stack_mode": "Stack blend mode",
+  "fabrishot.config.stack_mode.tooltip": "AVERAGE: long-exposure smoothing\nMAXIMUM: lighten / star trails\nMINIMUM: darken\nMEDIAN: remove moving objects",
+
+  "fabrishot.stack.progress": "Stacking %s/%s..."
 }
