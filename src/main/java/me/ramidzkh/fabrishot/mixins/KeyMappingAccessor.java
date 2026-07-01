@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Ramid Khan
+ * Copyright (c) 2021 Ramid Khan
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,28 +24,14 @@
 
 package me.ramidzkh.fabrishot.mixins;
 
-import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import com.mojang.blaze3d.platform.Window;
-import me.ramidzkh.fabrishot.Fabrishot;
-import me.ramidzkh.fabrishot.config.Config;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.KeyMapping;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(value = Window.class, priority = 1001)
-public class WindowMixin {
+@Mixin(KeyMapping.class)
+public interface KeyMappingAccessor {
 
-    @ModifyReturnValue(method = {"getWidth", "getScreenWidth", "getGuiScaledWidth"}, at = @At("RETURN"))
-    private int scaleWidth(int original) {
-        return Fabrishot.isInCapture() ? Config.CAPTURE_WIDTH : original;
-    }
-
-    @ModifyReturnValue(method = {"getHeight", "getScreenHeight", "getGuiScaledHeight"}, at = @At("RETURN"))
-    private int scaleHeight(int original) {
-        return Fabrishot.isInCapture() ? Config.CAPTURE_HEIGHT : original;
-    }
-
-    // todo: fix gui scaling (or is that needed anymore?)
-    //  @Inject(method = "getScaleFactor", at = @At("RETURN"), cancellable = true)
-    //  private void scaleScale(CallbackInfoReturnable<Double> cir) {
-    //  }
+    @Accessor("key")
+    InputConstants.Key getMappedKey();
 }

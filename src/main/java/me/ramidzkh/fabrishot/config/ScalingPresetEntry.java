@@ -47,18 +47,13 @@ public class ScalingPresetEntry extends AbstractConfigListEntry<Unit> {
         super(Component.empty(), false);
 
         this.children = IntStream.rangeClosed(1, 4)
-                .mapToObj(scaleFactor -> (Button) new Button.Plain(0, 0, 0, 20, Component.literal(scaleFactor + "x"), button -> {
+                .mapToObj(scaleFactor -> Button.builder(Component.literal(scaleFactor + "x"), button -> {
                     int width = Minecraft.getInstance().getWindow().getWidth() * scaleFactor;
                     int height = Minecraft.getInstance().getWindow().getHeight() * scaleFactor;
 
                     widthConfig.setValue(Integer.toString(width));
                     heightConfig.setValue(Integer.toString(height));
-                }, Supplier::get) {
-                    @Override
-                    protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
-
-                    }
-                })
+                }).size(0, 20).build())
                 .toList();
         this.width = myWidth;
     }

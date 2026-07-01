@@ -4,6 +4,8 @@
   "package": "me.ramidzkh.fabrishot.mixins",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
+    "HudAccessor",
+    "KeyMappingAccessor",
     "KeyboardMixin",
     "MinecraftClientMixin",
     "RenderscaleCommonClassMixin",

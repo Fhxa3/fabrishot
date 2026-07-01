@@ -46,6 +46,18 @@ public class Config {
     public static int CAPTURE_DELAY = 3;
     public static FileFormat CAPTURE_FILE_FORMAT = FileFormat.PNG;
 
+    // Encoding parameters
+    public static int PNG_COMPRESSION_LEVEL = 6;
+    public static int JPG_QUALITY = 2;
+    public static JpgColorSampling JPG_COLOR_SAMPLING = JpgColorSampling.YUV444;
+    public static int WEBP_QUALITY = 80;
+    public static boolean WEBP_LOSSLESS = false;
+    public static TiffCompression TIFF_COMPRESSION = TiffCompression.LZW;
+
+    // Colour space
+    public static ColorSpaceMode COLOR_SPACE_MODE = ColorSpaceMode.SRGB;
+    public static FabriColorSpace CUSTOM_COLOR_SPACE = FabriColorSpace.SRGB;
+
     private static final Path CONFIG = FabricLoader.getInstance().getConfigDir().resolve("fabrishot.properties");
 
     static {
@@ -61,6 +73,14 @@ public class Config {
             Config.CAPTURE_HEIGHT = Integer.parseInt(properties.getProperty("height"));
             Config.CAPTURE_DELAY = Integer.parseInt(properties.getProperty("delay"));
             Config.CAPTURE_FILE_FORMAT = FileFormat.valueOf(properties.getProperty("file_format"));
+            Config.PNG_COMPRESSION_LEVEL = Integer.parseInt(properties.getProperty("png_compression", "6"));
+            Config.JPG_QUALITY = Integer.parseInt(properties.getProperty("jpg_quality", "2"));
+            Config.JPG_COLOR_SAMPLING = JpgColorSampling.valueOf(properties.getProperty("jpg_color_sampling", "YUV444"));
+            Config.WEBP_QUALITY = Integer.parseInt(properties.getProperty("webp_quality", "80"));
+            Config.WEBP_LOSSLESS = Boolean.parseBoolean(properties.getProperty("webp_lossless"));
+            Config.TIFF_COMPRESSION = TiffCompression.valueOf(properties.getProperty("tiff_compression", "LZW"));
+            Config.COLOR_SPACE_MODE = ColorSpaceMode.valueOf(properties.getProperty("color_space_mode", "SRGB"));
+            Config.CUSTOM_COLOR_SPACE = FabriColorSpace.valueOf(properties.getProperty("custom_color_space", "SRGB"));
         } catch (Exception ignored) {
             save();
         }
@@ -76,6 +96,14 @@ public class Config {
         properties.put("height", String.valueOf(Config.CAPTURE_HEIGHT));
         properties.put("delay", String.valueOf(Config.CAPTURE_DELAY));
         properties.put("file_format", String.valueOf(Config.CAPTURE_FILE_FORMAT));
+        properties.put("png_compression", String.valueOf(Config.PNG_COMPRESSION_LEVEL));
+        properties.put("jpg_quality", String.valueOf(Config.JPG_QUALITY));
+        properties.put("jpg_color_sampling", String.valueOf(Config.JPG_COLOR_SAMPLING));
+        properties.put("webp_quality", String.valueOf(Config.WEBP_QUALITY));
+        properties.put("webp_lossless", String.valueOf(Config.WEBP_LOSSLESS));
+        properties.put("tiff_compression", String.valueOf(Config.TIFF_COMPRESSION));
+        properties.put("color_space_mode", String.valueOf(Config.COLOR_SPACE_MODE));
+        properties.put("custom_color_space", String.valueOf(Config.CUSTOM_COLOR_SPACE));
 
         try (BufferedWriter writer = Files.newBufferedWriter(CONFIG)) {
             properties.store(writer, "Fabrishot screenshot config");

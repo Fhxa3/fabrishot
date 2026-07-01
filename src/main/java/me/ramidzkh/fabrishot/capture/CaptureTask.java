@@ -26,6 +26,7 @@ package me.ramidzkh.fabrishot.capture;
 
 import me.ramidzkh.fabrishot.config.Config;
 import me.ramidzkh.fabrishot.event.FramebufferCaptureCallback;
+import me.ramidzkh.fabrishot.mixins.HudAccessor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.util.Util;
@@ -44,16 +45,19 @@ public class CaptureTask {
     }
 
     public boolean onRenderTick() {
+        Minecraft minecraft = Minecraft.getInstance();
+        HudAccessor hud = (HudAccessor) minecraft.gui.hud;
+
         if (frame == 0) {
-            hudHidden = Minecraft.getInstance().gameRenderer.gameRenderState().guiRenderState.isHudHidden;
-            Minecraft.getInstance().gameRenderer.gameRenderState().guiRenderState.isHudHidden |= Config.HIDE_HUD;
+            hudHidden = hud.isHudHidden();
+            hud.setHudHidden(hudHidden | Config.HIDE_HUD);
             frame++;
             return false;
         } else if (frame < Config.CAPTURE_DELAY) {
             frame++;
             return false;
         } else {
-            Screenshot.takeScreenshot(Minecraft.getInstance().gameRenderer.mainRenderTarget(), image -> {
+            Screenshot.takeScreenshot(minecraft.gameRenderer.mainRenderTarget(), image -> {
                 Util.ioPool().execute(() -> {
                     try (image) {
                         FramebufferCaptureCallback.EVENT.invoker().onCapture(image);
@@ -67,7 +71,7 @@ public class CaptureTask {
                 });
             });
 
-            Minecraft.getInstance().gameRenderer.gameRenderState().guiRenderState.isHudHidden = hudHidden;
+            hud.setHudHidden(hudHidden);
             return true;
         }
     }

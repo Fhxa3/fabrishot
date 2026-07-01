@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Ramid Khan
+ * Copyright (c) 2021 Ramid Khan
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,30 +22,35 @@
  * SOFTWARE.
  */
 
-package me.ramidzkh.fabrishot.mixins;
+package me.ramidzkh.fabrishot.capture;
 
-import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import com.mojang.blaze3d.platform.Window;
-import me.ramidzkh.fabrishot.Fabrishot;
-import me.ramidzkh.fabrishot.config.Config;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
+import net.fabricmc.loader.api.FabricLoader;
 
-@Mixin(value = Window.class, priority = 1001)
-public class WindowMixin {
+/**
+ * Detects whether Flashback is installed and its JavaCV/FFmpeg dependencies are available.
+ */
+public final class FlashbackDetector {
 
-    @ModifyReturnValue(method = {"getWidth", "getScreenWidth", "getGuiScaledWidth"}, at = @At("RETURN"))
-    private int scaleWidth(int original) {
-        return Fabrishot.isInCapture() ? Config.CAPTURE_WIDTH : original;
+    /**
+     * Cached result: true if Flashback is loaded AND the JavaCV FFmpegFrameRecorder class is on the classpath.
+     */
+    public static final boolean AVAILABLE;
+
+    static {
+        boolean available = false;
+        if (FabricLoader.getInstance().isModLoaded("flashback")) {
+            try {
+                // Double-check: the JavaCV classes must actually be loadable at runtime.
+                // Flashback bundles them; this guards against version mismatches.
+                Class.forName("org.bytedeco.javacv.FFmpegFrameRecorder");
+                available = true;
+            } catch (ClassNotFoundException ignored) {
+                // JavaCV not available — Flashback may be a version without FFmpeg
+            }
+        }
+        AVAILABLE = available;
     }
 
-    @ModifyReturnValue(method = {"getHeight", "getScreenHeight", "getGuiScaledHeight"}, at = @At("RETURN"))
-    private int scaleHeight(int original) {
-        return Fabrishot.isInCapture() ? Config.CAPTURE_HEIGHT : original;
+    private FlashbackDetector() {
     }
-
-    // todo: fix gui scaling (or is that needed anymore?)
-    //  @Inject(method = "getScaleFactor", at = @At("RETURN"), cancellable = true)
-    //  private void scaleScale(CallbackInfoReturnable<Double> cir) {
-    //  }
 }

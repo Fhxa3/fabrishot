@@ -26,10 +26,15 @@ package me.ramidzkh.fabrishot.config;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.terraformersmc.modmenu.api.ConfigScreenFactory;
+import me.ramidzkh.fabrishot.capture.ColorSpaceHelper;
+import me.ramidzkh.fabrishot.capture.FlashbackDetector;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
+import me.shedaniel.clothconfig2.api.Requirement;
+import me.shedaniel.clothconfig2.gui.entries.EnumListEntry;
 import me.shedaniel.clothconfig2.gui.entries.IntegerListEntry;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -43,6 +48,8 @@ public class ClothConfigBridge implements ConfigScreenFactory<Screen> {
                 .setParentScreen(parent);
         ConfigEntryBuilder entryBuilder = builder.entryBuilder();
         ConfigCategory category = builder.getOrCreateCategory(Component.translatable("fabrishot.config.category"));
+
+        // ── Basic settings ──
 
         category.addEntry(entryBuilder.startStrField(Component.translatable("fabrishot.config.custom_file_name"), Config.CUSTOM_FILE_NAME)
                 .setTooltip(Component.translatable("fabrishot.config.custom_file_name.tooltip"))
@@ -65,6 +72,8 @@ public class ClothConfigBridge implements ConfigScreenFactory<Screen> {
                 .setSaveConsumer(b -> Config.SAVE_FILE = b)
                 .build());
 
+        // ── Resolution ──
+
         IntegerListEntry width = entryBuilder.startIntField(Component.translatable("fabrishot.config.width"), Config.CAPTURE_WIDTH)
                 .setDefaultValue(3840)
                 .setMin(1)
@@ -83,6 +92,8 @@ public class ClothConfigBridge implements ConfigScreenFactory<Screen> {
 
         category.addEntry(new ScalingPresetEntry(220, width, height));
 
+        // ── Delay ──
+
         category.addEntry(entryBuilder.startIntField(Component.translatable("fabrishot.config.delay"), Config.CAPTURE_DELAY)
                 .setTooltip(Component.translatable("fabrishot.config.delay.tooltip"))
                 .setDefaultValue(3)
@@ -90,11 +101,104 @@ public class ClothConfigBridge implements ConfigScreenFactory<Screen> {
                 .setSaveConsumer(i -> Config.CAPTURE_DELAY = i)
                 .build());
 
-        category.addEntry(entryBuilder.startEnumSelector(Component.translatable("fabrishot.config.file_format"), FileFormat.class, Config.CAPTURE_FILE_FORMAT)
+        // ── Format & encoding ──
+
+        EnumListEntry<FileFormat> formatSelector = entryBuilder.startEnumSelector(Component.translatable("fabrishot.config.file_format"), FileFormat.class, Config.CAPTURE_FILE_FORMAT)
                 .setDefaultValue(FileFormat.PNG)
                 .setSaveConsumer(t -> Config.CAPTURE_FILE_FORMAT = t)
+                .build();
+        category.addEntry(formatSelector);
+
+        // Flashback status indicator
+        category.addEntry(entryBuilder.startTextDescription(flashbackStatus()).build());
+
+        // PNG: compression level
+        category.addEntry(entryBuilder.startIntSlider(Component.translatable("fabrishot.config.png_compression"), Config.PNG_COMPRESSION_LEVEL, 0, 9)
+                .setTooltip(Component.translatable("fabrishot.config.png_compression.tooltip"))
+                .setDefaultValue(6)
+                .setSaveConsumer(i -> Config.PNG_COMPRESSION_LEVEL = i)
+                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.PNG))
+                .build());
+
+        // JPEG: quality
+        category.addEntry(entryBuilder.startIntSlider(Component.translatable("fabrishot.config.jpg_quality"), Config.JPG_QUALITY, 2, 31)
+                .setTooltip(Component.translatable("fabrishot.config.jpg_quality.tooltip"))
+                .setDefaultValue(2)
+                .setSaveConsumer(i -> Config.JPG_QUALITY = i)
+                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.JPG))
+                .build());
+
+        // JPEG: color sampling
+        category.addEntry(entryBuilder.startEnumSelector(Component.translatable("fabrishot.config.jpg_color_sampling"), JpgColorSampling.class, Config.JPG_COLOR_SAMPLING)
+                .setTooltip(Component.translatable("fabrishot.config.jpg_color_sampling.tooltip"))
+                .setDefaultValue(JpgColorSampling.YUV444)
+                .setSaveConsumer(s -> Config.JPG_COLOR_SAMPLING = s)
+                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.JPG))
+                .build());
+
+        // WebP: lossless (above quality)
+        var webpLossless = entryBuilder.startBooleanToggle(Component.translatable("fabrishot.config.webp_lossless"), Config.WEBP_LOSSLESS)
+                .setTooltip(Component.translatable("fabrishot.config.webp_lossless.tooltip"))
+                .setDefaultValue(false)
+                .setSaveConsumer(b -> Config.WEBP_LOSSLESS = b)
+                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.WEBP))
+                .build();
+        category.addEntry(webpLossless);
+
+        // WebP: quality (hidden when lossless is on)
+        category.addEntry(entryBuilder.startIntSlider(Component.translatable("fabrishot.config.webp_quality"), Config.WEBP_QUALITY, 0, 100)
+                .setTooltip(Component.translatable("fabrishot.config.webp_quality.tooltip"))
+                .setDefaultValue(80)
+                .setSaveConsumer(i -> Config.WEBP_QUALITY = i)
+                .setDisplayRequirement(Requirement.all(
+                        Requirement.isValue(formatSelector, FileFormat.WEBP),
+                        Requirement.isFalse(webpLossless)))
+                .build());
+
+        // TIFF: compression
+        category.addEntry(entryBuilder.startEnumSelector(Component.translatable("fabrishot.config.tiff_compression"), TiffCompression.class, Config.TIFF_COMPRESSION)
+                .setTooltip(Component.translatable("fabrishot.config.tiff_compression.tooltip"))
+                .setDefaultValue(TiffCompression.LZW)
+                .setSaveConsumer(c -> Config.TIFF_COMPRESSION = c)
+                .setDisplayRequirement(Requirement.isValue(formatSelector, FileFormat.TIFF))
+                .build());
+
+        // ── Colour space ──
+
+        EnumListEntry<ColorSpaceMode> colorSpaceMode = entryBuilder.startEnumSelector(Component.translatable("fabrishot.config.color_space_mode"), ColorSpaceMode.class, Config.COLOR_SPACE_MODE)
+                .setTooltip(Component.translatable("fabrishot.config.color_space_mode.tooltip"))
+                .setDefaultValue(ColorSpaceMode.SRGB)
+                .setSaveConsumer(m -> Config.COLOR_SPACE_MODE = m)
+                .build();
+        category.addEntry(colorSpaceMode);
+
+        // Iris status (visible only when FOLLOW_IRIS)
+        category.addEntry(entryBuilder.startTextDescription(irisStatus())
+                .setDisplayRequirement(Requirement.isValue(colorSpaceMode, ColorSpaceMode.FOLLOW_IRIS))
+                .build());
+
+        // Custom colour space (visible only when CUSTOM)
+        category.addEntry(entryBuilder.startEnumSelector(Component.translatable("fabrishot.config.custom_color_space"), FabriColorSpace.class, Config.CUSTOM_COLOR_SPACE)
+                .setDefaultValue(FabriColorSpace.SRGB)
+                .setSaveConsumer(s -> Config.CUSTOM_COLOR_SPACE = s)
+                .setDisplayRequirement(Requirement.isValue(colorSpaceMode, ColorSpaceMode.CUSTOM))
                 .build());
 
         return builder.build();
+    }
+
+    private static Component flashbackStatus() {
+        if (FlashbackDetector.AVAILABLE) {
+            return Component.translatable("fabrishot.config.flashback.available");
+        }
+        return Component.translatable("fabrishot.config.flashback.unavailable");
+    }
+
+    private static Component irisStatus() {
+        if (!FabricLoader.getInstance().isModLoaded("iris")) {
+            return Component.translatable("fabrishot.config.iris.not_installed");
+        }
+        var cs = ColorSpaceHelper.resolve();
+        return Component.translatable("fabrishot.config.iris.detected", Component.literal(cs.name()));
     }
 }

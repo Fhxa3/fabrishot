@@ -26,7 +26,10 @@ package me.ramidzkh.fabrishot.capture;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import me.ramidzkh.fabrishot.config.Config;
+import me.ramidzkh.fabrishot.config.FileFormat;
 import me.ramidzkh.fabrishot.event.ScreenshotSaveCallback;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.lwjgl.stb.STBIWriteCallback;
 import org.lwjgl.stb.STBImageWrite;
 
@@ -39,19 +42,37 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
 public class FramebufferWriter {
+    private static final Logger LOGGER = LogManager.getLogger(FramebufferWriter.class);
 
     public static void write(NativeImage image, Path file) throws IOException {
-        try (FileChannel fc = FileChannel.open(file, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-             WriteCallback callback = new WriteCallback(fc)) {
-            switch (Config.CAPTURE_FILE_FORMAT) {
-                case PNG -> STBImageWrite.nstbi_write_png_to_func(callback.address(), 0L, image.getWidth(), image.getHeight(), image.format().components(), image.getPointer(), 0);
-                case JPG -> STBImageWrite.nstbi_write_jpg_to_func(callback.address(), 0L, image.getWidth(), image.getHeight(), image.format().components(), image.getPointer(), 90);
-                case TGA -> STBImageWrite.nstbi_write_tga_to_func(callback.address(), 0L, image.getWidth(), image.getHeight(), image.format().components(), image.getPointer());
-                case BMP -> STBImageWrite.nstbi_write_bmp_to_func(callback.address(), 0L, image.getWidth(), image.getHeight(), image.format().components(), image.getPointer());
+        var format = Config.CAPTURE_FILE_FORMAT;
+
+        if (FlashbackDetector.AVAILABLE) {
+            // FFmpeg available: route all formats through it for unified quality control
+            FfmpegWriter.write(image, file, format);
+        } else {
+            // No FFmpeg: PNG/JPG use STB built-in; formats that need FFmpeg fall back to PNG
+            if (format.needsFfmpeg()) {
+                LOGGER.warn("Flashback mod is required for {} format — falling back to PNG", format);
+                format = FileFormat.PNG;
+                // Fix file extension: the original path was created with the wrong extension
+                String name = file.getFileName().toString();
+                int dot = name.lastIndexOf('.');
+                if (dot > 0) {
+                    file = file.resolveSibling(name.substring(0, dot) + FileFormat.PNG.extension());
+                }
             }
 
-            if (callback.exception != null) {
-                throw callback.exception;
+            try (FileChannel fc = FileChannel.open(file, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                 WriteCallback callback = new WriteCallback(fc)) {
+                switch (format) {
+                    case PNG -> STBImageWrite.nstbi_write_png_to_func(callback.address(), 0L, image.getWidth(), image.getHeight(), image.format().components(), image.getPointer(), 0);
+                    case JPG -> STBImageWrite.nstbi_write_jpg_to_func(callback.address(), 0L, image.getWidth(), image.getHeight(), image.format().components(), image.getPointer(), 90);
+                }
+
+                if (callback.exception != null) {
+                    throw callback.exception;
+                }
             }
         }
 
