@@ -152,10 +152,19 @@ public class ClothConfigBridge implements ConfigScreenFactory<Screen> {
 
         ConfigCategory stackingCategory = builder.getOrCreateCategory(Component.translatable("fabrishot.config.stacking_category"));
 
-        stackingCategory.addEntry(entryBuilder.startIntSlider(
-                        Component.translatable("fabrishot.config.stack_count"), Config.STACK_COUNT, 2, 64)
+        EnumListEntry<StackMode> modeSelector = entryBuilder.startEnumSelector(
+                        Component.translatable("fabrishot.config.stack_mode"), StackMode.class, Config.STACK_MODE)
+                .setTooltip(Component.translatable("fabrishot.config.stack_mode.tooltip"))
+                .setDefaultValue(StackMode.AVERAGE)
+                .setSaveConsumer(m -> Config.STACK_MODE = m)
+                .build();
+        stackingCategory.addEntry(modeSelector);
+
+        stackingCategory.addEntry(entryBuilder.startIntField(
+                        Component.translatable("fabrishot.config.stack_count"), Config.STACK_COUNT)
                 .setTooltip(Component.translatable("fabrishot.config.stack_count.tooltip"))
                 .setDefaultValue(8)
+                .setMin(2)
                 .setSaveConsumer(i -> Config.STACK_COUNT = i)
                 .build());
 
@@ -164,13 +173,6 @@ public class ClothConfigBridge implements ConfigScreenFactory<Screen> {
                 .setTooltip(Component.translatable("fabrishot.config.stack_interval.tooltip"))
                 .setDefaultValue(1)
                 .setSaveConsumer(i -> Config.STACK_INTERVAL_TICKS = i)
-                .build());
-
-        stackingCategory.addEntry(entryBuilder.startEnumSelector(
-                        Component.translatable("fabrishot.config.stack_mode"), StackMode.class, Config.STACK_MODE)
-                .setTooltip(Component.translatable("fabrishot.config.stack_mode.tooltip"))
-                .setDefaultValue(StackMode.AVERAGE)
-                .setSaveConsumer(m -> Config.STACK_MODE = m)
                 .build());
 
         return builder.build();

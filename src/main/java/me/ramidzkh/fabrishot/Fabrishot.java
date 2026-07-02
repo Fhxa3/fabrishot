@@ -37,6 +37,8 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.IOException;
@@ -45,6 +47,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class Fabrishot {
+
+    private static final Logger LOGGER = LogManager.getLogger(Fabrishot.class);
 
     public static final KeyMapping SCREENSHOT_BINDING = new KeyMapping(
             "key.fabrishot.screenshot",
@@ -58,8 +62,8 @@ public class Fabrishot {
             GLFW.GLFW_KEY_F10,
             KeyMapping.Category.MISC);
 
-    private static CaptureTask task;
-    private static StackingCaptureTask stackTask;
+    private static volatile CaptureTask task;
+    private static volatile StackingCaptureTask stackTask;
 
     private static void printFileLink(Path path) {
         Minecraft minecraft = Minecraft.getInstance();
@@ -80,18 +84,36 @@ public class Fabrishot {
         KeyMappingHelper.registerKeyMapping(STACKING_BINDING);
         ScreenshotSaveCallback.EVENT.register(Fabrishot::printFileLink);
 
-        // Clean up any leftover stack temp files on shutdown
+        // Clean up any leftover stack temp directories on shutdown
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            Path tempDir = Minecraft.getInstance().gameDirectory.toPath()
-                    .resolve(".fabrishot").resolve("stack_temp");
-            try {
-                if (Files.exists(tempDir)) {
-                    try (var files = Files.list(tempDir)) {
-                        files.forEach(f -> {
-                            try { Files.deleteIfExists(f); } catch (IOException ignored) {}
-                        });
+            // Wait for an in-flight compositing operation to finish (up to 10 seconds)
+            if (stackTask != null && stackTask.isCompositing()) {
+                try {
+                    for (int i = 0; i < 100 && stackTask.isCompositing(); i++) {
+                        Thread.sleep(100);
                     }
-                    Files.deleteIfExists(tempDir);
+                } catch (InterruptedException ignored) {
+                }
+            }
+
+            Path fabrishotDir = Minecraft.getInstance().gameDirectory.toPath()
+                    .resolve(".fabrishot");
+            try {
+                if (Files.exists(fabrishotDir)) {
+                    try (var dirs = Files.list(fabrishotDir)) {
+                        dirs.filter(Files::isDirectory)
+                            .filter(d -> d.getFileName().toString().startsWith("stack_"))
+                            .forEach(d -> {
+                                try {
+                                    try (var files = Files.list(d)) {
+                                        files.forEach(f -> {
+                                            try { Files.deleteIfExists(f); } catch (IOException ignored) {}
+                                        });
+                                    }
+                                    Files.deleteIfExists(d);
+                                } catch (IOException ignored) {}
+                            });
+                    }
                 }
             } catch (IOException ignored) {
             }
@@ -102,6 +124,8 @@ public class Fabrishot {
         if (task == null && stackTask == null) {
             task = new CaptureTask(getScreenshotFile(Minecraft.getInstance()));
             refresh();
+        } else {
+            LOGGER.warn("Capture requested but another capture is already in progress");
         }
     }
 
@@ -109,6 +133,8 @@ public class Fabrishot {
         if (stackTask == null && task == null) {
             stackTask = StackingCaptureTask.create(getScreenshotFile(Minecraft.getInstance()));
             refresh();
+        } else {
+            LOGGER.warn("Stack capture requested but another capture is already in progress");
         }
     }
 
@@ -120,11 +146,11 @@ public class Fabrishot {
 
         if (stackTask != null && stackTask.onRenderTick()) {
             stackTask = null;
-            refresh();
+            // Resolution already restored when capturing ended — avoid redundant resize (black frame)
         }
     }
 
-    private static void refresh() {
+    public static void refresh() {
         var framebuffer = Minecraft.getInstance().gameRenderer.mainRenderTarget();
         if (framebuffer == null) return;
 
@@ -160,7 +186,8 @@ public class Fabrishot {
         int i = 1;
 
         do {
-            file = dir.resolve(prefix + (i++ == 1 ? "" : "_" + i) + Config.CAPTURE_FILE_FORMAT.extension());
+            file = dir.resolve(prefix + (i == 1 ? "" : "_" + i) + Config.CAPTURE_FILE_FORMAT.extension());
+            i++;
         } while (Files.exists(file));
 
         return file;
@@ -168,5 +195,24 @@ public class Fabrishot {
 
     public static boolean isInCapture() {
         return task != null || stackTask != null;
+    }
+
+    /**
+     * Returns a stacking progress string like "3/8", or null if no stacking capture is active.
+     */
+    public static String getStackProgressText() {
+        if (stackTask == null) return null;
+        return stackTask.getSavedCount() + "/" + stackTask.getStackCount();
+    }
+
+    /**
+     * Whether the window resolution should be overridden right now.
+     * For stacking captures this is false once all frames are taken,
+     * even while compositing runs in the background.
+     */
+    public static boolean isOverridingResolution() {
+        if (task != null) return true;
+        if (stackTask != null) return stackTask.isCapturing();
+        return false;
     }
 }

@@ -25,6 +25,7 @@
 package me.ramidzkh.fabrishot.capture;
 
 import com.mojang.blaze3d.platform.NativeImage;
+import me.ramidzkh.fabrishot.Fabrishot;
 import me.ramidzkh.fabrishot.config.Config;
 import me.ramidzkh.fabrishot.mixins.HudAccessor;
 import net.minecraft.client.Minecraft;
@@ -33,34 +34,65 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 public class StackingCaptureTask {
 
     private final Path file;
-    private final Path tempDir;
-    private final List<Path> tempFiles = new ArrayList<>();
+    private StreamingAccumulator acc;
     private boolean hudHidden;
     private int tick;
     private int taken;
-    private int saved;
+    private volatile int saved;
+    private volatile boolean compositing;
+    private volatile boolean capturing = true;
 
     private StackingCaptureTask(Path file) {
         this.file = file;
-        this.tempDir = Minecraft.getInstance().gameDirectory.toPath()
-                .resolve(".fabrishot").resolve("stack_temp");
     }
 
     public static StackingCaptureTask create(Path file) {
         return new StackingCaptureTask(file);
     }
 
+    public boolean isCompositing() {
+        return compositing;
+    }
+
+    public boolean isCapturing() {
+        return capturing;
+    }
+
+    public int getTakenCount() {
+        return taken;
+    }
+
+    public int getSavedCount() {
+        return saved;
+    }
+
+    public int getStackCount() {
+        return Config.STACK_COUNT;
+    }
+
     public boolean onRenderTick() {
         Minecraft client = Minecraft.getInstance();
         HudAccessor hud = (HudAccessor) client.gui.hud;
+
+        // All frames dispatched — wait for streaming to finish
+        if (taken >= Config.STACK_COUNT) {
+            if (compositing) {
+                if (saved >= Config.STACK_COUNT) {
+                    client.gui.hud.setOverlayMessage(
+                            Component.translatable("fabrishot.stack.compositing"), false);
+                } else {
+                    client.gui.hud.setOverlayMessage(
+                            Component.translatable("fabrishot.stack.saving", saved, Config.STACK_COUNT), false);
+                }
+                return false;
+            }
+            return true;
+        }
 
         if (tick == 0 && taken == 0) {
             hudHidden = hud.isHudHidden();
@@ -76,13 +108,15 @@ public class StackingCaptureTask {
             return false;
         }
 
-        int frameIndex = taken;
         Screenshot.takeScreenshot(client.gameRenderer.mainRenderTarget(), image -> {
             Util.ioPool().execute(() -> {
-                try (image) {
-                    saveTempFrame(image, frameIndex);
+                try {
+                    processFrame(image);
                 } catch (IOException e) {
+                    compositing = false;
                     throw new RuntimeException(e);
+                } finally {
+                    image.close();
                 }
             });
         });
@@ -91,29 +125,32 @@ public class StackingCaptureTask {
         taken++;
 
         if (taken >= Config.STACK_COUNT) {
+            compositing = true;
+            capturing = false;
             hud.setHudHidden(hudHidden);
-            client.gui.hud.setOverlayMessage(Component.empty(), false);
-            return true;
+            Fabrishot.refresh();
+            return false;
         }
 
         return false;
     }
 
-    private void saveTempFrame(NativeImage image, int index) throws IOException {
-        Path tempFile = tempDir.resolve(String.format("frame_%04d.png", index));
-        Files.createDirectories(tempDir);
-        image.writeToFile(tempFile);
+    private synchronized void processFrame(NativeImage image) throws IOException {
+        if (acc == null) {
+            acc = StreamingAccumulator.create(
+                    image.getWidth(), image.getHeight(),
+                    Config.STACK_MODE, file);
+        }
+        acc.accumulate(image);
+        saved++;
 
-        synchronized (tempFiles) {
-            tempFiles.add(tempFile);
-            saved++;
-
-            if (saved >= Config.STACK_COUNT) {
-                var sorted = new ArrayList<>(tempFiles);
-                sorted.sort(null);
-                StackingCompositor.composite(tempDir, sorted, file,
-                        Config.CAPTURE_FILE_FORMAT, Config.STACK_MODE);
-            }
+        if (saved >= Config.STACK_COUNT) {
+            acc.finish();
+            acc = null;
+            compositing = false;
+            Minecraft.getInstance().execute(() ->
+                    Minecraft.getInstance().gui.hud.setOverlayMessage(
+                            Component.translatable("fabrishot.stack.done"), false));
         }
     }
 }

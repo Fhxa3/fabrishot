@@ -63,13 +63,13 @@ public class Config {
             properties.load(reader);
 
             Config.CUSTOM_FILE_NAME = properties.getProperty("custom_file_name", "huge_%time%");
-            Config.OVERRIDE_SCREENSHOT_KEY = Boolean.parseBoolean(properties.getProperty("override_screenshot_key"));
-            Config.HIDE_HUD = Boolean.parseBoolean(properties.getProperty("hide_hud"));
-            Config.SAVE_FILE = Boolean.parseBoolean(properties.getProperty("save_file"));
-            Config.CAPTURE_WIDTH = Integer.parseInt(properties.getProperty("width"));
-            Config.CAPTURE_HEIGHT = Integer.parseInt(properties.getProperty("height"));
-            Config.CAPTURE_DELAY = Integer.parseInt(properties.getProperty("delay"));
-            Config.CAPTURE_FILE_FORMAT = FileFormat.valueOf(properties.getProperty("file_format"));
+            Config.OVERRIDE_SCREENSHOT_KEY = Boolean.parseBoolean(properties.getProperty("override_screenshot_key", "false"));
+            Config.HIDE_HUD = Boolean.parseBoolean(properties.getProperty("hide_hud", "false"));
+            Config.SAVE_FILE = Boolean.parseBoolean(properties.getProperty("save_file", "true"));
+            Config.CAPTURE_WIDTH = Integer.parseInt(properties.getProperty("width", "3840"));
+            Config.CAPTURE_HEIGHT = Integer.parseInt(properties.getProperty("height", "2160"));
+            Config.CAPTURE_DELAY = Integer.parseInt(properties.getProperty("delay", "3"));
+            Config.CAPTURE_FILE_FORMAT = FileFormat.valueOf(properties.getProperty("file_format", "PNG"));
             Png.load(properties);
             Jpg.load(properties);
             Webp.load(properties);
@@ -80,7 +80,8 @@ public class Config {
             Config.STACK_COUNT = Integer.parseInt(properties.getProperty("stack_count", "8"));
             Config.STACK_INTERVAL_TICKS = Integer.parseInt(properties.getProperty("stack_interval", "1"));
             Config.STACK_MODE = StackMode.valueOf(properties.getProperty("stack_mode", "AVERAGE"));
-        } catch (Exception ignored) {
+        } catch (Exception ex) {
+            LogManager.getLogger(Config.class).warn("Failed to load config, saving defaults", ex);
             save();
         }
     }

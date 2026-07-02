@@ -36,12 +36,12 @@ public class WindowMixin {
 
     @ModifyReturnValue(method = {"getWidth", "getScreenWidth", "getGuiScaledWidth"}, at = @At("RETURN"))
     private int scaleWidth(int original) {
-        return Fabrishot.isInCapture() ? Config.CAPTURE_WIDTH : original;
+        return Fabrishot.isOverridingResolution() ? Config.CAPTURE_WIDTH : original;
     }
 
     @ModifyReturnValue(method = {"getHeight", "getScreenHeight", "getGuiScaledHeight"}, at = @At("RETURN"))
     private int scaleHeight(int original) {
-        return Fabrishot.isInCapture() ? Config.CAPTURE_HEIGHT : original;
+        return Fabrishot.isOverridingResolution() ? Config.CAPTURE_HEIGHT : original;
     }
 
     // todo: fix gui scaling (or is that needed anymore?)

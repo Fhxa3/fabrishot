@@ -36,8 +36,5 @@ public enum StackMode {
     MAXIMUM,
 
     /** Per-pixel minimum — dark detail emphasis. */
-    MINIMUM,
-
-    /** Per-pixel median — removes transient objects (e.g. pedestrians in a busy street). */
-    MEDIAN,
+    MINIMUM
 }

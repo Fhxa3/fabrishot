@@ -6,11 +6,10 @@
   "fabrishot.config.override_screenshot_key": "使用 Fabrishot 替换原版默认的截图功能",
   "fabrishot.config.hide_hud": "自动隐藏 HUD",
   "fabrishot.config.save_file": "保存截图文件",
-  "fabrishot.config.disable_gui_scaling": "禁用界面尺寸缩放",
   "fabrishot.config.width": "截图宽度",
   "fabrishot.config.height": "截图高度",
-  "fabrishot.config.delay": "截图延迟",
-  "fabrishot.config.delay.tooltip": "图像尺寸调整完毕后，在截图前需要等待的帧数。\n在使用光影时，若想在截图时获得更好的曝光效果，则需要调整该值。",
+  "fabrishot.config.delay": "截图延迟（帧数）",
+  "fabrishot.config.delay.tooltip": "图像尺寸调整完毕后，在截图前需要等待的渲染帧数（非游戏刻）。\n在使用光影时，若想在截图时获得更好的曝光效果，则需要调整该值。",
   "fabrishot.config.file_format": "文件格式",
   "fabrishot.config.flashback.available": "✓ 已安装 Flashback — FFmpeg 编码可用",
   "fabrishot.config.flashback.unavailable": "✗ 未安装 Flashback — WebP/TIFF/AVIF 将回退为 PNG",
@@ -47,11 +46,14 @@
 
   "fabrishot.config.stacking_category": "图片堆栈",
   "fabrishot.config.stack_count": "堆栈帧数",
-  "fabrishot.config.stack_count.tooltip": "拍摄并合成的截图数量 (2-64)",
+  "fabrishot.config.stack_count.tooltip": "拍摄并合成的截图数量（最小2，无上限）",
   "fabrishot.config.stack_interval": "帧间隔",
-  "fabrishot.config.stack_interval.tooltip": "每帧之间的等待刻数 (1刻 = 1/20秒)",
+  "fabrishot.config.stack_interval.tooltip": "每帧之间等待的渲染帧数（非游戏刻）。低帧率时可减小此值。",
   "fabrishot.config.stack_mode": "堆栈模式",
-  "fabrishot.config.stack_mode.tooltip": "均值：模拟长曝光\n最大值：光轨/星轨\n最小值：保留暗部\n中值：消除移动物体",
+  "fabrishot.config.stack_mode.tooltip": "均值：模拟长曝光\n最大值：光轨/星轨\n最小值：保留暗部",
 
-  "fabrishot.stack.progress": "堆栈拍摄 %s/%s..."
+  "fabrishot.stack.progress": "截取中 %s/%s...",
+  "fabrishot.stack.saving": "保存中 %s/%s...",
+  "fabrishot.stack.compositing": "合成中...",
+  "fabrishot.stack.done": "合成完毕"
 }

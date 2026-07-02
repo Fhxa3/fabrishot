@@ -8,8 +8,8 @@
   "fabrishot.config.save_file": "Save the screenshot file",
   "fabrishot.config.width": "Screenshot width",
   "fabrishot.config.height": "Screenshot height",
-  "fabrishot.config.delay": "Capture delay",
-  "fabrishot.config.delay.tooltip": "Frames to wait after resizing. Tweak for better exposure with shaders",
+  "fabrishot.config.delay": "Capture delay (frames)",
+  "fabrishot.config.delay.tooltip": "Rendered frames to wait after resize (not game ticks). Higher values help shaders adjust exposure.",
   "fabrishot.config.file_format": "File format",
   "fabrishot.config.flashback.available": "\u2713 Flashback detected \u2014 FFmpeg encoding available",
   "fabrishot.config.flashback.unavailable": "\u2717 Flashback not detected \u2014 WebP/TIFF/AVIF will fall back to PNG",
@@ -46,11 +46,14 @@
 
   "fabrishot.config.stacking_category": "Image Stacking",
   "fabrishot.config.stack_count": "Stack frame count",
-  "fabrishot.config.stack_count.tooltip": "Number of screenshots to capture and merge together (2-64)",
-  "fabrishot.config.stack_interval": "Stack frame interval",
-  "fabrishot.config.stack_interval.tooltip": "Ticks to wait between each frame capture (1 tick = 1/20 sec)",
+  "fabrishot.config.stack_count.tooltip": "Number of screenshots to capture and merge together (min 2, no upper limit)",
+  "fabrishot.config.stack_interval": "Frame interval",
+  "fabrishot.config.stack_interval.tooltip": "Rendered frames to wait between captures (not game ticks). At low FPS, reduce this value.",
   "fabrishot.config.stack_mode": "Stack blend mode",
-  "fabrishot.config.stack_mode.tooltip": "AVERAGE: long-exposure smoothing\nMAXIMUM: lighten / star trails\nMINIMUM: darken\nMEDIAN: remove moving objects",
+  "fabrishot.config.stack_mode.tooltip": "AVERAGE: long-exposure smoothing\nMAXIMUM: lighten / star trails\nMINIMUM: darken",
 
-  "fabrishot.stack.progress": "Stacking %s/%s..."
+  "fabrishot.stack.progress": "Taking %s/%s...",
+  "fabrishot.stack.saving": "Saving %s/%s...",
+  "fabrishot.stack.compositing": "Compositing...",
+  "fabrishot.stack.done": "Composite complete"
 }

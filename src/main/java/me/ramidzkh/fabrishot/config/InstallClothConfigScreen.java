@@ -55,7 +55,5 @@ public class InstallClothConfigScreen extends Screen {
 
         int textWidth = minecraft.font.width(INSTALL_CLOTH_CONFIG);
         drawContext.text(minecraft.font, INSTALL_CLOTH_CONFIG, (width - textWidth) / 2, height / 3, 0xFF0000);
-
-        super.extractRenderState(drawContext, mouseX, mouseY, delta);
     }
 }
