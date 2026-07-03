@@ -65,6 +65,10 @@ public class FramebufferWriter {
 
             try (FileChannel fc = FileChannel.open(file, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
                  WriteCallback callback = new WriteCallback(fc)) {
+                // STB expects RGB but the NativeImage buffer stores BGR;
+                // swap Red and Blue channels before encoding
+                swapRedBlue(image);
+
                 switch (format) {
                     case PNG -> STBImageWrite.nstbi_write_png_to_func(callback.address(), 0L, image.getWidth(), image.getHeight(), image.format().components(), image.getPointer(), 0);
                     case JPG -> STBImageWrite.nstbi_write_jpg_to_func(callback.address(), 0L, image.getWidth(), image.getHeight(), image.format().components(), image.getPointer(), 90);
@@ -77,6 +81,29 @@ public class FramebufferWriter {
         }
 
         ScreenshotSaveCallback.EVENT.invoker().onSaved(file);
+    }
+
+    /**
+     * Swaps the Red and Blue channels of each pixel in-place.
+     * <p>
+     * {@link StreamingAccumulator#writePixels} stores pixel data as BGR in the
+     * {@link NativeImage} buffer, but STB's PNG/JPEG encoders expect RGB order.
+     * FFmpeg (via {@link FFmpegWriter}) handles the buffer as-is, so this swap is
+     * only applied in the non-FFmpeg path.
+     */
+    private static void swapRedBlue(NativeImage image) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int components = image.format().components();
+        long ptr = image.getPointer();
+
+        for (int i = 0; i < width * height; i++) {
+            long offset = (long) i * components;
+            byte b0 = org.lwjgl.system.MemoryUtil.memGetByte(ptr + offset);
+            byte b2 = org.lwjgl.system.MemoryUtil.memGetByte(ptr + offset + 2);
+            org.lwjgl.system.MemoryUtil.memPutByte(ptr + offset, b2);
+            org.lwjgl.system.MemoryUtil.memPutByte(ptr + offset + 2, b0);
+        }
     }
 
     private static class WriteCallback extends STBIWriteCallback implements AutoCloseable, Closeable {

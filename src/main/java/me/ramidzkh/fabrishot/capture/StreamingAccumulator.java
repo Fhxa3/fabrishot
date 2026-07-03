@@ -115,7 +115,6 @@ public final class StreamingAccumulator {
             FramebufferWriter.write(result, output);
         }
 
-        ScreenshotSaveCallback.EVENT.invoker().onSaved(output);
         LOGGER.info("Streaming composite complete ({} frames): {}", frameCount, output);
     }
 

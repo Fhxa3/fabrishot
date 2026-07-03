@@ -36,6 +36,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Minecraft.class)
 public class KeyboardMixin {
 
+    @Inject(method = "handleGlobalKeyPress", at = @At("HEAD"), cancellable = true)
+    private void onStackInterrupt(InputConstants.Key key, boolean controlDown, CallbackInfoReturnable<Boolean> callbackInfo) {
+        if (key.getValue() == InputConstants.KEY_ESCAPE && Fabrishot.isStackCaptureInProgress()) {
+            Fabrishot.interruptStackCapture();
+            callbackInfo.setReturnValue(true);
+        }
+    }
+
     @Inject(method = "handleGlobalKeyPress", at = @At(value = "FIELD", target = "Lnet/minecraft/client/Options;keyScreenshot:Lnet/minecraft/client/KeyMapping;"))
     private void preScreenshot(InputConstants.Key key, boolean controlDown, CallbackInfoReturnable<Boolean> callbackInfo) {
         // Injecting here allows us to work inside other menus

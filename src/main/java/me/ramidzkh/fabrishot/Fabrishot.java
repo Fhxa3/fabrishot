@@ -198,6 +198,22 @@ public class Fabrishot {
     }
 
     /**
+     * Returns true when a stack capture is currently running and still capturing frames.
+     */
+    public static boolean isStackCaptureInProgress() {
+        return stackTask != null && stackTask.isCapturing();
+    }
+
+    /**
+     * Interrupts an active stack capture, making it finish compositing with the frames already taken.
+     */
+    public static void interruptStackCapture() {
+        if (stackTask != null) {
+            stackTask.interrupt();
+        }
+    }
+
+    /**
      * Returns a stacking progress string like "3/8", or null if no stacking capture is active.
      */
     public static String getStackProgressText() {
