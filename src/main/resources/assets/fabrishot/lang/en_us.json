@@ -11,5 +11,10 @@
   "fabrishot.config.delay": "Capture delay",
   "fabrishot.config.delay.tooltip": "Frames to wait after resizing. Tweak for better exposure with shaders",
   "fabrishot.config.file_format": "File format",
+  "fabrishot.error.invalid_size": "Fabrishot: invalid capture size %sx%s",
+  "fabrishot.error.side_too_large": "Fabrishot: %sx%s exceeds the maximum texture size of %s, the capture was cancelled",
+  "fabrishot.error.too_many_pixels": "Fabrishot: %sx%s has too many pixels (maximum %s megapixels), the capture was cancelled",
+  "fabrishot.error.capture_failed": "Fabrishot: the %sx%s capture failed and was cancelled",
+  "fabrishot.error.save_failed": "Fabrishot: could not save %s",
   "key.fabrishot.screenshot": "Take large screenshot"
 }

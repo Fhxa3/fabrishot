@@ -24,21 +24,30 @@
 
 package me.ramidzkh.fabrishot.event;
 
+import java.nio.file.Path;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.nio.file.Path;
-
-/**
- * Callback for immediately after a screenshot is saved
- */
+/** Callback for immediately after a screenshot is saved. */
 public interface ScreenshotSaveCallback {
 
-    Event<ScreenshotSaveCallback> EVENT = EventFactory.createArrayBacked(ScreenshotSaveCallback.class, callbacks -> path -> {
-        for (ScreenshotSaveCallback callback : callbacks) {
-            callback.onSaved(path);
-        }
-    });
+  Logger LOGGER = LogManager.getLogger(ScreenshotSaveCallback.class);
 
-    void onSaved(Path path);
+  Event<ScreenshotSaveCallback> EVENT =
+      EventFactory.createArrayBacked(
+          ScreenshotSaveCallback.class,
+          callbacks ->
+              path -> {
+                for (ScreenshotSaveCallback callback : callbacks) {
+                  try {
+                    callback.onSaved(path);
+                  } catch (Exception exception) {
+                    LOGGER.error("Screenshot save callback {} failed", callback, exception);
+                  }
+                }
+              });
+
+  void onSaved(Path path);
 }

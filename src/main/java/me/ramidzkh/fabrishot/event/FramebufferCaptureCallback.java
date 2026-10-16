@@ -27,17 +27,27 @@ package me.ramidzkh.fabrishot.event;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-/**
- * Immediately after a screenshot is captured, but before it is saved
- */
+/** Immediately after a screenshot is captured, but before it is saved. */
 public interface FramebufferCaptureCallback {
 
-    Event<FramebufferCaptureCallback> EVENT = EventFactory.createArrayBacked(FramebufferCaptureCallback.class, callbacks -> (image) -> {
-        for (FramebufferCaptureCallback callback : callbacks) {
-            callback.onCapture(image);
-        }
-    });
+  Logger LOGGER = LogManager.getLogger(FramebufferCaptureCallback.class);
 
-    void onCapture(NativeImage image);
+  Event<FramebufferCaptureCallback> EVENT =
+      EventFactory.createArrayBacked(
+          FramebufferCaptureCallback.class,
+          callbacks ->
+              (image) -> {
+                for (FramebufferCaptureCallback callback : callbacks) {
+                  try {
+                    callback.onCapture(image);
+                  } catch (Exception exception) {
+                    LOGGER.error("Framebuffer capture callback {} failed", callback, exception);
+                  }
+                }
+              });
+
+  void onCapture(NativeImage image);
 }

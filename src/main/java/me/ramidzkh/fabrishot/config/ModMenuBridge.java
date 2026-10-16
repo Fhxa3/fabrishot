@@ -30,12 +30,12 @@ import net.fabricmc.loader.api.FabricLoader;
 
 public class ModMenuBridge implements ModMenuApi {
 
-    @Override
-    public ConfigScreenFactory<?> getModConfigScreenFactory() {
-        if (FabricLoader.getInstance().isModLoaded("cloth-config")) {
-            return new ClothConfigBridge();
-        } else {
-            return InstallClothConfigScreen::new;
-        }
+  @Override
+  public ConfigScreenFactory<?> getModConfigScreenFactory() {
+    if (FabricLoader.getInstance().isModLoaded("cloth-config")) {
+      return new ClothConfigBridge();
+    } else {
+      return InstallClothConfigScreen::new;
     }
+  }
 }

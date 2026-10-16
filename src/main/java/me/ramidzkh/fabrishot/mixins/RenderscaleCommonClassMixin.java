@@ -11,8 +11,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(targets = "dev.zelo.renderscale.RenderScale")
 public class RenderscaleCommonClassMixin {
 
-    @Inject(method = "setShouldScale", at = @At("HEAD"), cancellable = true, require = 0)
-    private void disableScalingDuringScreenshot(boolean shouldScale, CallbackInfo ci) {
-        if (Fabrishot.isInCapture()) ci.cancel();
+  @Inject(method = "setShouldScale", at = @At("HEAD"), cancellable = true, require = 0)
+  private void disableScalingDuringScreenshot(boolean shouldScale, CallbackInfo ci) {
+    if (Fabrishot.isInCapture()) {
+      ci.cancel();
     }
+  }
 }

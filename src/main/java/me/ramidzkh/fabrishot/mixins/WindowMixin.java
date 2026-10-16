@@ -34,18 +34,20 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(value = Window.class, priority = 1001)
 public class WindowMixin {
 
-    @ModifyReturnValue(method = {"getScreenWidth", "getGuiScaledWidth"}, at = @At("RETURN"))
-    private int scaleWidth(int original) {
-        return Fabrishot.isInCapture() ? Config.CAPTURE_WIDTH : original;
-    }
+  @ModifyReturnValue(
+      method = {"getWidth", "getScreenWidth", "getGuiScaledWidth"},
+      at = @At("RETURN"))
+  private int scaleWidth(int original) {
+    return Fabrishot.isInCapture() ? Config.CAPTURE_WIDTH : original;
+  }
 
-    @ModifyReturnValue(method = {"getScreenHeight", "getGuiScaledHeight"}, at = @At("RETURN"))
-    private int scaleHeight(int original) {
-        return Fabrishot.isInCapture() ? Config.CAPTURE_HEIGHT : original;
-    }
+  @ModifyReturnValue(
+      method = {"getHeight", "getScreenHeight", "getGuiScaledHeight"},
+      at = @At("RETURN"))
+  private int scaleHeight(int original) {
+    return Fabrishot.isInCapture() ? Config.CAPTURE_HEIGHT : original;
+  }
 
-    // todo: fix gui scaling (or is that needed anymore?)
-    //  @Inject(method = "getScaleFactor", at = @At("RETURN"), cancellable = true)
-    //  private void scaleScale(CallbackInfoReturnable<Double> cir) {
-    //  }
+  // todo: fix gui scaling (or is that needed anymore?)
+  // 应该没人会保留GUI截图吧
 }

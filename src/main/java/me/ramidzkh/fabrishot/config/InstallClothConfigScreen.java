@@ -33,29 +33,31 @@ import net.minecraft.network.chat.Component;
 
 public class InstallClothConfigScreen extends Screen {
 
-    private static final Component INSTALL_CLOTH_CONFIG = Component.literal("You must install Cloth Config");
-    private final Screen parent;
+  private static final Component INSTALL_CLOTH_CONFIG =
+      Component.literal("You must install Cloth Config");
+  private final Screen parent;
 
-    public InstallClothConfigScreen(Screen parent) {
-        super(GameNarrator.NO_TITLE);
-        this.parent = parent;
-    }
+  public InstallClothConfigScreen(Screen parent) {
+    super(GameNarrator.NO_TITLE);
+    this.parent = parent;
+  }
 
-    @Override
-    protected void init() {
-        addRenderableWidget(Button.builder(CommonComponents.GUI_OK, buttonWidget -> minecraft.setScreen(parent))
-                .pos(width / 2 - 100, height - 52)
-                .size(200, 20)
-                .build());
-    }
+  @Override
+  protected void init() {
+    addRenderableWidget(
+        Button.builder(CommonComponents.GUI_OK, buttonWidget -> minecraft.gui.setScreen(parent))
+            .pos(width / 2 - 100, height - 52)
+            .size(200, 20)
+            .build());
+  }
 
-    @Override
-    public void extractRenderState(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
-        super.extractRenderState(drawContext, mouseX, mouseY, delta);
+  @Override
+  public void extractRenderState(
+      GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    super.extractRenderState(drawContext, mouseX, mouseY, delta);
 
-        int textWidth = minecraft.font.width(INSTALL_CLOTH_CONFIG);
-        drawContext.text(minecraft.font, INSTALL_CLOTH_CONFIG, (width - textWidth) / 2, height / 3, 0xFF0000);
-
-        super.extractRenderState(drawContext, mouseX, mouseY, delta);
-    }
+    int textWidth = minecraft.font.width(INSTALL_CLOTH_CONFIG);
+    drawContext.text(
+        minecraft.font, INSTALL_CLOTH_CONFIG, (width - textWidth) / 2, height / 3, 0xFFFF0000);
+  }
 }

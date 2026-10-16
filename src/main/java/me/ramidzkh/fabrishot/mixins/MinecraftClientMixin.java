@@ -34,8 +34,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Minecraft.class)
 public class MinecraftClientMixin {
 
-    @Inject(method = "renderFrame", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/GameRenderer;render(Lnet/minecraft/client/DeltaTracker;Z)V", shift = At.Shift.AFTER))
-    private void postRender(CallbackInfo callbackInfo) {
-        Fabrishot.onRenderPreOrPost();
-    }
+  @Inject(
+      method = "renderFrame",
+      at =
+          @At(
+              value = "INVOKE",
+              target = "Lnet/minecraft/client/renderer/GameRenderer;render()V",
+              shift = At.Shift.AFTER))
+  private void postRender(CallbackInfo callbackInfo) {
+    Fabrishot.onRenderPreOrPost();
+  }
 }

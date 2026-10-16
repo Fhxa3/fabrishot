@@ -23,6 +23,10 @@
 
 package me.ramidzkh.fabrishot.config;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Supplier;
+import java.util.stream.IntStream;
 import me.shedaniel.clothconfig2.api.AbstractConfigListEntry;
 import me.shedaniel.clothconfig2.gui.entries.IntegerListEntry;
 import net.minecraft.client.Minecraft;
@@ -33,71 +37,90 @@ import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Unit;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Supplier;
-import java.util.stream.IntStream;
-
 public class ScalingPresetEntry extends AbstractConfigListEntry<Unit> {
 
-    private final List<Button> children;
-    private final int width;
+  private final List<Button> children;
+  private final int width;
 
-    public ScalingPresetEntry(int myWidth, IntegerListEntry widthConfig, IntegerListEntry heightConfig) {
-        super(Component.empty(), false);
+  @SuppressWarnings("deprecation") // 怎么tmd弃用了IntegerListEntry还不给替代啊
+  public ScalingPresetEntry(
+      int myWidth, IntegerListEntry widthConfig, IntegerListEntry heightConfig) {
+    super(Component.empty(), false);
 
-        this.children = IntStream.rangeClosed(1, 4)
-                .mapToObj(scaleFactor -> (Button) new Button.Plain(0, 0, 0, 20, Component.literal(scaleFactor + "x"), button -> {
-                    int width = Minecraft.getInstance().getWindow().getWidth() * scaleFactor;
-                    int height = Minecraft.getInstance().getWindow().getHeight() * scaleFactor;
+    this.children =
+        IntStream.rangeClosed(1, 4)
+            .mapToObj(
+                scaleFactor ->
+                    (Button)
+                        new Button.Plain(
+                            0,
+                            0,
+                            0,
+                            20,
+                            Component.literal(scaleFactor + "x"),
+                            button -> {
+                              int width =
+                                  Minecraft.getInstance().getWindow().getWidth() * scaleFactor;
+                              int height =
+                                  Minecraft.getInstance().getWindow().getHeight() * scaleFactor;
 
-                    widthConfig.setValue(Integer.toString(width));
-                    heightConfig.setValue(Integer.toString(height));
-                }, Supplier::get) {
-                })
-                .toList();
-        this.width = myWidth;
+                              widthConfig.setValue(Integer.toString(width));
+                              heightConfig.setValue(Integer.toString(height));
+                            },
+                            Supplier::get) {})
+            .toList();
+    this.width = myWidth;
+  }
+
+  @Override
+  public Unit getValue() {
+    return Unit.INSTANCE;
+  }
+
+  @Override
+  public Optional<Unit> getDefaultValue() {
+    return Optional.of(Unit.INSTANCE);
+  }
+
+  @Override
+  public void save() {}
+
+  @Override
+  public void extractRenderState(
+      GuiGraphicsExtractor graphics,
+      int index,
+      int y,
+      int x,
+      int entryWidth,
+      int entryHeight,
+      int mouseX,
+      int mouseY,
+      boolean isHovered,
+      float delta) {
+    super.extractRenderState(
+        graphics, index, y, x, entryWidth, entryHeight, mouseX, mouseY, isHovered, delta);
+
+    int totalGap = (this.children.size() - 1) * 4;
+    int childWidth = (this.width - totalGap) / this.children.size();
+
+    for (int i = 0; i < children.size(); i++) {
+      Button child = children.get(i);
+      child.active = this.isEditable();
+      child.setX(x + entryWidth / 2 - this.width / 2 + i * (childWidth + 4));
+      child.setY(y);
+      child.setWidth(childWidth - 2);
+
+      child.extractRenderState(graphics, mouseX, mouseY, delta);
     }
+  }
 
-    @Override
-    public Unit getValue() {
-        return Unit.INSTANCE;
-    }
+  @Override
+  public List<? extends GuiEventListener> children() {
+    return children;
+  }
 
-    @Override
-    public Optional<Unit> getDefaultValue() {
-        return Optional.of(Unit.INSTANCE);
-    }
-
-    @Override
-    public void save() {
-    }
-
-    @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean isHovered, float delta) {
-        super.extractRenderState(graphics, index, y, x, entryWidth, entryHeight, mouseX, mouseY, isHovered, delta);
-
-        int totalGap = (this.children.size() - 1) * 4;
-        int childWidth = (this.width - totalGap) / this.children.size();
-
-        for (int i = 0; i < children.size(); i++) {
-            Button child = children.get(i);
-            child.active = this.isEditable();
-            child.setX(x + entryWidth / 2 - this.width / 2 + i * (childWidth + 4));
-            child.setY(y);
-            child.setWidth(childWidth - 2);
-
-            child.extractRenderState(graphics, mouseX, mouseY, delta);
-        }
-    }
-
-    @Override
-    public List<? extends GuiEventListener> children() {
-        return children;
-    }
-
-    @Override
-    public List<? extends NarratableEntry> narratables() {
-        return children;
-    }
+  @Override
+  public List<? extends NarratableEntry> narratables() {
+    return children;
+  }
 }

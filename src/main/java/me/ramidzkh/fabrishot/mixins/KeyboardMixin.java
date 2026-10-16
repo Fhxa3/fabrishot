@@ -24,31 +24,44 @@
 
 package me.ramidzkh.fabrishot.mixins;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import me.ramidzkh.fabrishot.Fabrishot;
 import me.ramidzkh.fabrishot.config.Config;
-import net.minecraft.client.KeyboardHandler;
-import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(KeyboardHandler.class)
+@Mixin(Minecraft.class)
 public class KeyboardMixin {
 
-    @Inject(method = "keyPress", at = @At(value = "FIELD", target = "Lnet/minecraft/client/Options;keyScreenshot:Lnet/minecraft/client/KeyMapping;"))
-    private void preScreenshot(long window, int i, KeyEvent keyEvent, CallbackInfo callbackInfo) {
-        // Injecting here allows us to work inside other menus
-        if (Fabrishot.SCREENSHOT_BINDING.matches(keyEvent)) {
-            Fabrishot.startCapture();
-        }
+  @Inject(
+      method = "handleGlobalKeyPress",
+      at =
+          @At(
+              value = "FIELD",
+              target =
+                  "Lnet/minecraft/client/Options;keyScreenshot:Lnet/minecraft/client/KeyMapping;"))
+  private void preScreenshot(
+      InputConstants.Key key, boolean controlDown, CallbackInfoReturnable<Boolean> callbackInfo) {
+    if (Fabrishot.SCREENSHOT_BINDING.matches(key)) {
+      Fabrishot.startCapture();
     }
+  }
 
-    @Inject(method = "keyPress", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Screenshot;grab(Ljava/io/File;Lcom/mojang/blaze3d/pipeline/RenderTarget;Ljava/util/function/Consumer;)V"), cancellable = true)
-    private void onScreenshot(CallbackInfo callbackInfo) {
-        if (Config.OVERRIDE_SCREENSHOT_KEY) {
-            Fabrishot.startCapture();
-            callbackInfo.cancel();
-        }
+  @Inject(
+      method = "handleGlobalKeyPress",
+      at =
+          @At(
+              value = "INVOKE",
+              target = "Lnet/minecraft/client/Screenshot;grab(Lnet/minecraft/client/Minecraft;Z)V"),
+      cancellable = true)
+  private void onScreenshot(
+      InputConstants.Key key, boolean controlDown, CallbackInfoReturnable<Boolean> callbackInfo) {
+    if (Config.OVERRIDE_SCREENSHOT_KEY) {
+      Fabrishot.startCapture();
+      callbackInfo.setReturnValue(true);
     }
+  }
 }

@@ -25,11 +25,6 @@
 package me.ramidzkh.fabrishot.capture;
 
 import com.mojang.blaze3d.platform.NativeImage;
-import me.ramidzkh.fabrishot.config.Config;
-import me.ramidzkh.fabrishot.event.ScreenshotSaveCallback;
-import org.lwjgl.stb.STBIWriteCallback;
-import org.lwjgl.stb.STBImageWrite;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -37,53 +32,106 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import me.ramidzkh.fabrishot.config.Config;
+import me.ramidzkh.fabrishot.event.ScreenshotSaveCallback;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.lwjgl.stb.STBIWriteCallback;
+import org.lwjgl.stb.STBImageWrite;
 
 public class FramebufferWriter {
 
-    public static void write(NativeImage image, Path file) throws IOException {
-        try (FileChannel fc = FileChannel.open(file, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-             WriteCallback callback = new WriteCallback(fc)) {
-            switch (Config.CAPTURE_FILE_FORMAT) {
-                case PNG -> STBImageWrite.nstbi_write_png_to_func(callback.address(), 0L, image.getWidth(), image.getHeight(), image.format().components(), image.getPointer(), 0);
-                case JPG -> STBImageWrite.nstbi_write_jpg_to_func(callback.address(), 0L, image.getWidth(), image.getHeight(), image.format().components(), image.getPointer(), 90);
-                case TGA -> STBImageWrite.nstbi_write_tga_to_func(callback.address(), 0L, image.getWidth(), image.getHeight(), image.format().components(), image.getPointer());
-                case BMP -> STBImageWrite.nstbi_write_bmp_to_func(callback.address(), 0L, image.getWidth(), image.getHeight(), image.format().components(), image.getPointer());
-            }
+  private static final Logger LOGGER = LogManager.getLogger(FramebufferWriter.class);
 
-            if (callback.exception != null) {
-                throw callback.exception;
-            }
-        }
-
-        ScreenshotSaveCallback.EVENT.invoker().onSaved(file);
+  public static void write(NativeImage image, Path file) throws IOException {
+    if (image.isClosed()) {
+      LOGGER.warn("Not writing {}, the image was already closed by a callback", file);
+      return;
     }
 
-    private static class WriteCallback extends STBIWriteCallback implements AutoCloseable, Closeable {
-        private final WritableByteChannel channel;
-        private IOException exception;
+    try (FileChannel fc =
+            FileChannel.open(
+                file,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE);
+        WriteCallback callback = new WriteCallback(fc)) {
+      int written =
+          switch (Config.CAPTURE_FILE_FORMAT) {
+            case PNG ->
+                STBImageWrite.nstbi_write_png_to_func(
+                    callback.address(),
+                    0L,
+                    image.getWidth(),
+                    image.getHeight(),
+                    image.format().components(),
+                    image.getPointer(),
+                    0);
+            case JPG ->
+                STBImageWrite.nstbi_write_jpg_to_func(
+                    callback.address(),
+                    0L,
+                    image.getWidth(),
+                    image.getHeight(),
+                    image.format().components(),
+                    image.getPointer(),
+                    90);
+            case TGA ->
+                STBImageWrite.nstbi_write_tga_to_func(
+                    callback.address(),
+                    0L,
+                    image.getWidth(),
+                    image.getHeight(),
+                    image.format().components(),
+                    image.getPointer());
+            case BMP ->
+                STBImageWrite.nstbi_write_bmp_to_func(
+                    callback.address(),
+                    0L,
+                    image.getWidth(),
+                    image.getHeight(),
+                    image.format().components(),
+                    image.getPointer());
+          };
 
-        private WriteCallback(WritableByteChannel channel) {
-            this.channel = channel;
-        }
+      if (callback.exception != null) {
+        throw callback.exception;
+      }
 
-        @Override
-        public void invoke(long context, long data, int size) {
-            if (this.exception != null) {
-                return;
-            }
-
-            ByteBuffer buf = STBIWriteCallback.getData(data, size);
-
-            try {
-                this.channel.write(buf);
-            } catch (IOException e) {
-                this.exception = e;
-            }
-        }
-
-        @Override
-        public void close() {
-            this.free();
-        }
+      if (written == 0) {
+        throw new IOException("Could not write " + file + " as " + Config.CAPTURE_FILE_FORMAT);
+      }
     }
+
+    ScreenshotSaveCallback.EVENT.invoker().onSaved(file);
+  }
+
+  private static class WriteCallback extends STBIWriteCallback implements AutoCloseable, Closeable {
+    private final WritableByteChannel channel;
+    private IOException exception;
+
+    private WriteCallback(WritableByteChannel channel) {
+      this.channel = channel;
+    }
+
+    @Override
+    public void invoke(long context, long data, int size) {
+      if (this.exception != null) {
+        return;
+      }
+
+      ByteBuffer buf = STBIWriteCallback.getData(data, size);
+
+      try {
+        this.channel.write(buf);
+      } catch (IOException e) {
+        this.exception = e;
+      }
+    }
+
+    @Override
+    public void close() {
+      this.free();
+    }
+  }
 }

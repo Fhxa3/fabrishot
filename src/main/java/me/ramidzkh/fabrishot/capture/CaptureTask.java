@@ -24,51 +24,86 @@
 
 package me.ramidzkh.fabrishot.capture;
 
-import me.ramidzkh.fabrishot.config.Config;
-import me.ramidzkh.fabrishot.event.FramebufferCaptureCallback;
-import net.minecraft.util.Util;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.Screenshot;
-
 import java.io.IOException;
 import java.nio.file.Path;
+import me.ramidzkh.fabrishot.Fabrishot;
+import me.ramidzkh.fabrishot.config.Config;
+import me.ramidzkh.fabrishot.event.FramebufferCaptureCallback;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Screenshot;
+import net.minecraft.client.gui.Hud;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Util;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class CaptureTask {
 
-    private final Path file;
-    private boolean hudHidden;
-    private int frame;
+  private static final Logger LOGGER = LogManager.getLogger(CaptureTask.class);
 
-    public CaptureTask(Path file) {
-        this.file = file;
-    }
+  private final Path file;
+  private boolean hudHidden;
+  private int frame;
 
-    public boolean onRenderTick() {
-        if (frame == 0) {
-            hudHidden = Minecraft.getInstance().options.hideGui;
-            Minecraft.getInstance().options.hideGui |= Config.HIDE_HUD;
-            frame++;
-            return false;
-        } else if (frame < Config.CAPTURE_DELAY) {
-            frame++;
-            return false;
-        } else {
-            Screenshot.takeScreenshot(Minecraft.getInstance().getMainRenderTarget(), image -> {
-                Util.ioPool().execute(() -> {
-                    try (image) {
-                        FramebufferCaptureCallback.EVENT.invoker().onCapture(image);
+  public CaptureTask(Path file) {
+    this.file = file;
+  }
 
-                        if (Config.SAVE_FILE) {
+  public boolean onRenderTick() {
+    Minecraft minecraft = Minecraft.getInstance();
+    Hud hud = minecraft.gui.hud;
+
+    if (frame == 0) {
+      hudHidden = hud.isHidden();
+
+      if (Config.HIDE_HUD && !hudHidden) {
+        hud.toggle();
+      }
+
+      frame++;
+      return false;
+    } else if (frame < Config.CAPTURE_DELAY) {
+      frame++;
+      return false;
+    } else {
+      try {
+        Screenshot.takeScreenshot(
+            minecraft.gameRenderer.mainRenderTarget(),
+            image -> {
+              Util.ioPool()
+                  .execute(
+                      () -> {
+                        try (image) {
+                          FramebufferCaptureCallback.EVENT.invoker().onCapture(image);
+
+                          if (Config.SAVE_FILE) {
                             FramebufferWriter.write(image, file);
+                          }
+                        } catch (IOException exception) {
+                          LOGGER.error("Could not save the screenshot to {}", file, exception);
+                          Fabrishot.printError(
+                              Component.translatable(
+                                  "fabrishot.error.save_failed", file.getFileName()));
                         }
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+                      });
             });
+      } catch (RuntimeException exception) {
+        // Warn when an operation cannot allocate a buffer.
+        LOGGER.error(
+            "Could not capture a {}x{} screenshot",
+            Config.CAPTURE_WIDTH,
+            Config.CAPTURE_HEIGHT,
+            exception);
+        Fabrishot.printError(
+            Component.translatable(
+                "fabrishot.error.capture_failed", Config.CAPTURE_WIDTH, Config.CAPTURE_HEIGHT));
+      }
 
-            Minecraft.getInstance().options.hideGui = hudHidden;
-            return true;
-        }
+      if (hud.isHidden() != hudHidden) {
+        hud.toggle();
+      }
+
+      return true;
     }
+  }
 }

@@ -12,5 +12,10 @@
   "fabrishot.config.delay": "截图延迟",
   "fabrishot.config.delay.tooltip": "图像尺寸调整完毕后，在截图前需要等待的帧数。\n在使用光影时，若想在截图时获得更好的曝光效果，则需要调整该值。",
   "fabrishot.config.file_format": "文件格式",
+  "fabrishot.error.invalid_size": "截图尺寸 %sx%s 无效",
+  "fabrishot.error.side_too_large": "%sx%s 超出最大纹理尺寸 %s，已取消截图",
+  "fabrishot.error.too_many_pixels": "Fabrishot：%sx%s 像素过多（最多 %s 百万像素），已取消截图",
+  "fabrishot.error.capture_failed": "Fabrishot：%sx%s 截图失败，已取消",
+  "fabrishot.error.save_failed": "Fabrishot：无法保存 %s",
   "key.fabrishot.screenshot": "截图（高分辨率）"
 }
