@@ -2,6 +2,7 @@
  * MIT License
  *
  * Copyright (c) 2021 Ramid Khan
+ * Copyright (c) 2026 Fhxa3 (modifications)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,10 +32,14 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import me.ramidzkh.fabrishot.capture.CaptureTask;
 import me.ramidzkh.fabrishot.config.Config;
+import me.ramidzkh.fabrishot.config.FileFormat;
 import me.ramidzkh.fabrishot.event.ScreenshotSaveCallback;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
@@ -65,6 +70,10 @@ public class Fabrishot {
 
   private static CaptureTask task;
 
+  private static final Set<String> SHOWN_NOTICES = ConcurrentHashMap.newKeySet();
+
+  private static final Set<Path> PENDING_SCREENSHOT_FILES = ConcurrentHashMap.newKeySet(); // Set screenshot name from previous configuration.
+
   private static void printFileLink(Path path) {
     Minecraft minecraft = Minecraft.getInstance();
 
@@ -84,6 +93,21 @@ public class Fabrishot {
   public static void initialize() {
     KeyMappingHelper.registerKeyMapping(SCREENSHOT_BINDING);
     ScreenshotSaveCallback.EVENT.register(Fabrishot::printFileLink);
+    ClientTickEvents.END_CLIENT_TICK.register(Fabrishot::onClientTick);
+  }
+
+  private static void onClientTick(Minecraft minecraft) {
+    if (minecraft.level == null) {
+      return;
+    }
+
+    FileFormat reset = Config.consumeResetFormat();
+
+    if (reset != null) {
+      printNotice(
+          Component.translatable(
+              "fabrishot.notice.format_fallback", Component.literal(reset.name())));
+    }
   }
 
   public static void startCapture() {
@@ -99,7 +123,9 @@ public class Fabrishot {
       return;
     }
 
-    task = new CaptureTask(getScreenshotFile(minecraft));
+    FileFormat format = Config.CAPTURE_FILE_FORMAT;
+    Path file = getScreenshotFile(minecraft, format);
+    task = new CaptureTask(file, format);
 
     try {
       refresh();
@@ -111,6 +137,7 @@ public class Fabrishot {
           Config.CAPTURE_HEIGHT,
           exception);
       task = null;
+      releaseScreenshotFile(file);
 
       try {
         refresh();
@@ -170,6 +197,17 @@ public class Fabrishot {
     minecraft.execute(() -> minecraft.gui.hud.getChat().addClientSystemMessage(styled));
   }
 
+  public static void printNotice(Component message) {
+    Minecraft minecraft = Minecraft.getInstance();
+    minecraft.execute(() -> minecraft.gui.hud.getChat().addClientSystemMessage(message));
+  }
+  // Print information to the chat unless it has already been printed.
+  public static void printNoticeOnce(String key, Component message) {
+    if (SHOWN_NOTICES.add(key)) {
+      printNotice(message);
+    }
+  }
+
   public static void onRenderPreOrPost() {
     if (task != null && task.onRenderTick()) {
       task = null;
@@ -184,7 +222,7 @@ public class Fabrishot {
     minecraft.gameRenderer.resize(window.getWidth(), window.getHeight());
   }
 
-  private static Path getScreenshotFile(Minecraft client) {
+  private static Path getScreenshotFile(Minecraft client, FileFormat format) {
     Path dir = client.gameDirectory.toPath().resolve("screenshots");
 
     try {
@@ -216,17 +254,22 @@ public class Fabrishot {
       prefix = "huge";
     }
 
-    Path file;
-
-    // loop through suffixes while the file exists
+    // Prevent the user pressed the screenshot key madly to cause multiple images writing to the same file.
     int i = 1;
 
-    do {
-      file =
-          dir.resolve(prefix + (i++ == 1 ? "" : "_" + i) + Config.CAPTURE_FILE_FORMAT.extension());
-    } while (Files.exists(file));
+    while (true) {
+      Path file = dir.resolve(prefix + (i == 1 ? "" : "_" + i) + format.extension());
 
-    return file;
+      if (!Files.exists(file) && PENDING_SCREENSHOT_FILES.add(file)) {
+        return file;
+      }
+
+      i++;
+    }
+  }
+
+  public static void releaseScreenshotFile(Path file) {
+    PENDING_SCREENSHOT_FILES.remove(file); //Release reservation
   }
 
   public static boolean isInCapture() {

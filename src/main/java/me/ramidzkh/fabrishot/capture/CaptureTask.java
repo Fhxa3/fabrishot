@@ -2,6 +2,7 @@
  * MIT License
  *
  * Copyright (c) 2021 Ramid Khan
+ * Copyright (c) 2026 Fhxa3 (modifications)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +29,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import me.ramidzkh.fabrishot.Fabrishot;
 import me.ramidzkh.fabrishot.config.Config;
+import me.ramidzkh.fabrishot.config.FileFormat;
 import me.ramidzkh.fabrishot.event.FramebufferCaptureCallback;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
@@ -42,11 +44,13 @@ public class CaptureTask {
   private static final Logger LOGGER = LogManager.getLogger(CaptureTask.class);
 
   private final Path file;
+  private final FileFormat format;
   private boolean hudHidden;
   private int frame;
 
-  public CaptureTask(Path file) {
+  public CaptureTask(Path file, FileFormat format) {
     this.file = file;
+    this.format = format;
   }
 
   public boolean onRenderTick() {
@@ -70,22 +74,30 @@ public class CaptureTask {
         Screenshot.takeScreenshot(
             minecraft.gameRenderer.mainRenderTarget(),
             image -> {
-              Util.ioPool()
-                  .execute(
-                      () -> {
-                        try (image) {
-                          FramebufferCaptureCallback.EVENT.invoker().onCapture(image);
+              try {
+                Util.ioPool()
+                    .execute(
+                        () -> {
+                          try (image) {
+                            FramebufferCaptureCallback.EVENT.invoker().onCapture(image);
 
-                          if (Config.SAVE_FILE) {
-                            FramebufferWriter.write(image, file);
+                            if (Config.SAVE_FILE) {
+                              FramebufferWriter.write(image, file, format);
+                            }
+                          } catch (IOException exception) {
+                            LOGGER.error("Could not save the screenshot to {}", file, exception);
+                            Fabrishot.printError(
+                                Component.translatable(
+                                    "fabrishot.error.save_failed", file.getFileName()));
+                          } finally {
+                            Fabrishot.releaseScreenshotFile(file);
                           }
-                        } catch (IOException exception) {
-                          LOGGER.error("Could not save the screenshot to {}", file, exception);
-                          Fabrishot.printError(
-                              Component.translatable(
-                                  "fabrishot.error.save_failed", file.getFileName()));
-                        }
-                      });
+                        });
+              } catch (RuntimeException exception) {
+                Fabrishot.releaseScreenshotFile(file);
+                image.close();
+                throw exception;
+              }
             });
       } catch (RuntimeException exception) {
         // Warn when an operation cannot allocate a buffer.
@@ -94,6 +106,7 @@ public class CaptureTask {
             Config.CAPTURE_WIDTH,
             Config.CAPTURE_HEIGHT,
             exception);
+        Fabrishot.releaseScreenshotFile(file);
         Fabrishot.printError(
             Component.translatable(
                 "fabrishot.error.capture_failed", Config.CAPTURE_WIDTH, Config.CAPTURE_HEIGHT));

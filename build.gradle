@@ -4,11 +4,13 @@ plugins {
 }
 
 group = "me.ramidzkh"
-version = System.getenv("FABRISHOT_VERSION") ?: "1.19.0+26.3"
+version = System.getenv("FABRISHOT_VERSION") ?: "1.19.1+26.3"
 
 String minecraft_version = "26.3"
 
 repositories {
+    mavenCentral()
+
     maven {
         name = "TerraformersMC"
         url = uri("https://maven.terraformersmc.com/releases/")
@@ -35,6 +37,22 @@ dependencies {
     implementation("net.fabricmc.fabric-api:fabric-api:0.163.0+26.3")
     implementation("com.terraformersmc:modmenu:21.0.0")
     implementation("me.shedaniel.cloth:cloth-config-fabric:26.3.159")
+
+    // Flashback ships these libraries shaded in its own jar, so they are only needed to compile.
+    // They must never end up in the Fabrishot jar, or the game would load two copies of FFmpeg.
+    compileOnly("org.bytedeco:javacv:1.5.14") {
+        // The javacv POM pulls in a long list of unrelated grabbers, none of which are used here.
+        exclude group: "org.bytedeco"
+        exclude group: "com.google.android"
+        exclude group: "org.jogamp.gluegen"
+        exclude group: "org.jogamp.jogl"
+        exclude group: "org.jogamp.jocl"
+        exclude group: "com.badlogicgames.gdx"
+        exclude group: "org.openjfx"
+        exclude group: "net.java.openjfx.backport"
+    }
+    compileOnly("org.bytedeco:javacpp:1.5.14")
+    compileOnly("org.bytedeco:ffmpeg:8.1.2-1.5.14")
 }
 
 java {
