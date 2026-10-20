@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "me.ramidzkh"
-version = System.getenv("FABRISHOT_VERSION") ?: "1.19.1+26.3"
+version = System.getenv("FABRISHOT_VERSION") ?: "1.19.2+26.3"
 
 String minecraft_version = "26.3"
 
