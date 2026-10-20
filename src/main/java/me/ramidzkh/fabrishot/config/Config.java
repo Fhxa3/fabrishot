@@ -59,6 +59,17 @@ public class Config {
   public static AvifTune AVIF_TUNE = AvifTune.SSIM;
   public static AvifColorSampling AVIF_COLOR_SAMPLING = AvifColorSampling.YUV420;
   public static boolean DEBUG_ENCODE_STATS = false;
+  public static int STACK_COUNT = 8;
+
+  // This is NOT game tick.
+  public static int STACK_INTERVAL_TICKS = 1;
+  public static StackMode STACK_MODE = StackMode.LINEAR_MEAN;
+  public static boolean STACK_LOW_MEMORY = false;
+
+  public static final int STACK_COUNT_MIN = 2;
+  public static final int STACK_COUNT_MAX = 16_383;
+  public static final int STACK_INTERVAL_MIN = 1;
+  public static final int STACK_INTERVAL_MAX = 100;
 
   private static final Logger LOGGER = LogManager.getLogger(Config.class);
 
@@ -106,6 +117,23 @@ public class Config {
             properties, "avif_color_sampling", AvifColorSampling.class, Config.AVIF_COLOR_SAMPLING);
     Config.DEBUG_ENCODE_STATS =
         readBoolean(properties, "debug_encode_stats", Config.DEBUG_ENCODE_STATS);
+    Config.STACK_COUNT =
+        readClampedInt(
+            properties,
+            "stack_count",
+            Config.STACK_COUNT,
+            Config.STACK_COUNT_MIN,
+            Config.STACK_COUNT_MAX);
+    Config.STACK_INTERVAL_TICKS =
+        readClampedInt(
+            properties,
+            "stack_interval",
+            Config.STACK_INTERVAL_TICKS,
+            Config.STACK_INTERVAL_MIN,
+            Config.STACK_INTERVAL_MAX);
+    Config.STACK_MODE = readEnum(properties, "stack_mode", StackMode.class, Config.STACK_MODE);
+    Config.STACK_LOW_MEMORY =
+        readBoolean(properties, "stack_low_memory", Config.STACK_LOW_MEMORY);
   }
 
   //Return the format.
@@ -239,6 +267,10 @@ public class Config {
     properties.put("avif_tune", String.valueOf(Config.AVIF_TUNE));
     properties.put("avif_color_sampling", String.valueOf(Config.AVIF_COLOR_SAMPLING));
     properties.put("debug_encode_stats", String.valueOf(Config.DEBUG_ENCODE_STATS));
+    properties.put("stack_count", String.valueOf(Config.STACK_COUNT));
+    properties.put("stack_interval", String.valueOf(Config.STACK_INTERVAL_TICKS));
+    properties.put("stack_mode", String.valueOf(Config.STACK_MODE));
+    properties.put("stack_low_memory", String.valueOf(Config.STACK_LOW_MEMORY));
 
     try (BufferedWriter writer = Files.newBufferedWriter(CONFIG)) {
       properties.store(writer, "Fabrishot screenshot config");

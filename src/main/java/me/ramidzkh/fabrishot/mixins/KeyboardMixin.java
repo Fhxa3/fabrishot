@@ -2,6 +2,7 @@
  * MIT License
  *
  * Copyright (c) 2021 Ramid Khan
+ * Copyright (c) 2026 Fhxa3 (modifications)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +37,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Minecraft.class)
 public class KeyboardMixin {
 
+  @Inject(method = "handleGlobalKeyPress", at = @At("HEAD"), cancellable = true)
+  private void onEscape(
+      InputConstants.Key key, boolean controlDown, CallbackInfoReturnable<Boolean> callbackInfo) {
+    if (key.getType() == InputConstants.Type.KEYBOARD
+        && key.getValue() == InputConstants.KEY_ESCAPE
+        && (Fabrishot.isStackCaptureInProgress() || Fabrishot.hasPendingStackCapture())) {
+      Fabrishot.interruptStackCapture();
+      callbackInfo.setReturnValue(true);
+    }
+  }
+
   @Inject(
       method = "handleGlobalKeyPress",
       at =
@@ -47,6 +59,8 @@ public class KeyboardMixin {
       InputConstants.Key key, boolean controlDown, CallbackInfoReturnable<Boolean> callbackInfo) {
     if (Fabrishot.SCREENSHOT_BINDING.matches(key)) {
       Fabrishot.startCapture();
+    } else if (Fabrishot.STACKING_BINDING.matches(key)) {
+      Fabrishot.startStackCapture();
     }
   }
 

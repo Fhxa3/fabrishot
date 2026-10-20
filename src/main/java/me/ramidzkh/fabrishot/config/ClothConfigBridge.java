@@ -212,6 +212,62 @@ public class ClothConfigBridge implements ConfigScreenFactory<Screen> {
             .setSaveConsumer(b -> Config.DEBUG_ENCODE_STATS = b)
             .build());
 
+    ConfigCategory stackingCategory =
+        builder.getOrCreateCategory(Component.translatable("fabrishot.config.stacking_category"));
+
+    stackingCategory.addEntry(
+        entryBuilder
+            .startEnumSelector(
+                Component.translatable("fabrishot.config.stack_mode"),
+                StackMode.class,
+                Config.STACK_MODE)
+            .setTooltip(Component.translatable("fabrishot.config.stack_mode.tooltip"))
+            .setDefaultValue(StackMode.LINEAR_MEAN)
+            .setEnumNameProvider(
+                mode ->
+                    mode == StackMode.LINEAR_MEAN
+                        ? Component.translatable("fabrishot.stack_mode.average")
+                        : Component.literal(mode.name()))
+            .setSaveConsumer(mode -> Config.STACK_MODE = mode)
+            .build());
+
+    stackingCategory.addEntry(
+        entryBuilder
+            .startIntField(
+                Component.translatable("fabrishot.config.stack_count"), Config.STACK_COUNT)
+            .setTooltip(
+                Component.translatable(
+                    "fabrishot.config.stack_count.tooltip",
+                    Config.STACK_COUNT_MIN,
+                    Config.STACK_COUNT_MAX))
+            .setDefaultValue(8)
+            .setMin(Config.STACK_COUNT_MIN)
+            .setMax(Config.STACK_COUNT_MAX)
+            .setSaveConsumer(count -> Config.STACK_COUNT = count)
+            .build());
+
+    stackingCategory.addEntry(
+        entryBuilder
+            .startIntSlider(
+                Component.translatable("fabrishot.config.stack_interval"),
+                Config.STACK_INTERVAL_TICKS,
+                Config.STACK_INTERVAL_MIN,
+                Config.STACK_INTERVAL_MAX)
+            .setTooltip(Component.translatable("fabrishot.config.stack_interval.tooltip"))
+            .setDefaultValue(1)
+            .setSaveConsumer(interval -> Config.STACK_INTERVAL_TICKS = interval)
+            .build());
+
+    stackingCategory.addEntry(
+        entryBuilder
+            .startBooleanToggle(
+                Component.translatable("fabrishot.config.stack_low_memory"),
+                Config.STACK_LOW_MEMORY)
+            .setTooltip(Component.translatable("fabrishot.config.stack_low_memory.tooltip"))
+            .setDefaultValue(false)
+            .setSaveConsumer(lowMemory -> Config.STACK_LOW_MEMORY = lowMemory)
+            .build());
+
     return builder.build();
   }
 

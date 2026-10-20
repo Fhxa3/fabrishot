@@ -2,6 +2,7 @@
  * MIT License
  *
  * Copyright (c) 2025 Ramid Khan
+ * Copyright (c) 2026 Fhxa3 (modifications)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +28,6 @@ package me.ramidzkh.fabrishot.mixins;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.mojang.blaze3d.platform.Window;
 import me.ramidzkh.fabrishot.Fabrishot;
-import me.ramidzkh.fabrishot.config.Config;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -38,14 +38,14 @@ public class WindowMixin {
       method = {"getWidth", "getScreenWidth", "getGuiScaledWidth"},
       at = @At("RETURN"))
   private int scaleWidth(int original) {
-    return Fabrishot.isInCapture() ? Config.CAPTURE_WIDTH : original;
+    return Fabrishot.isInCapture() ? Fabrishot.captureWidth() : original;
   }
 
   @ModifyReturnValue(
       method = {"getHeight", "getScreenHeight", "getGuiScaledHeight"},
       at = @At("RETURN"))
   private int scaleHeight(int original) {
-    return Fabrishot.isInCapture() ? Config.CAPTURE_HEIGHT : original;
+    return Fabrishot.isInCapture() ? Fabrishot.captureHeight() : original;
   }
 
   // todo: fix gui scaling (or is that needed anymore?)

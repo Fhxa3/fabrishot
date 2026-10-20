@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import me.ramidzkh.fabrishot.capture.CaptureTask;
+import me.ramidzkh.fabrishot.capture.StackingCaptureTask;
 import me.ramidzkh.fabrishot.config.Config;
 import me.ramidzkh.fabrishot.config.FileFormat;
 import me.ramidzkh.fabrishot.event.ScreenshotSaveCallback;
@@ -59,9 +60,20 @@ public class Fabrishot {
           InputConstants.KEY_F9,
           KeyMapping.Category.MISC);
 
+  public static final KeyMapping STACKING_BINDING =
+      new KeyMapping(
+          "key.fabrishot.stack_screenshot",
+          InputConstants.Type.KEYBOARD,
+          InputConstants.KEY_F10,
+          KeyMapping.Category.MISC);
+
   private static final long MAX_READBACK_BYTES = Integer.MAX_VALUE;  //Some backends refuse to map buffers larger than 2 GiB or excessively large texture dimensions.
 
   private static final int DEFAULT_BYTES_PER_PIXEL = 4;
+
+  private static final int MANY_FRAMES_WARNING = 256;
+
+  private static final long STACK_MEMORY_MARGIN = 256L * 1024L * 1024L;
 
   private static final Pattern ILLEGAL_FILE_NAME_CHARACTERS =
       Pattern.compile("[\\\\/:*?\"<>|\\x00-\\x1f]");
@@ -69,6 +81,10 @@ public class Fabrishot {
   private static final Logger LOGGER = LogManager.getLogger(Fabrishot.class);
 
   private static CaptureTask task;
+
+  private static volatile StackingCaptureTask stackTask;
+
+  private static PendingStackCapture pendingStackCapture; // Render thread only.
 
   private static final Set<String> SHOWN_NOTICES = ConcurrentHashMap.newKeySet();
 
@@ -92,6 +108,7 @@ public class Fabrishot {
 
   public static void initialize() {
     KeyMappingHelper.registerKeyMapping(SCREENSHOT_BINDING);
+    KeyMappingHelper.registerKeyMapping(STACKING_BINDING);
     ScreenshotSaveCallback.EVENT.register(Fabrishot::printFileLink);
     ClientTickEvents.END_CLIENT_TICK.register(Fabrishot::onClientTick);
   }
@@ -111,7 +128,7 @@ public class Fabrishot {
   }
 
   public static void startCapture() {
-    if (task != null) {
+    if (task != null || stackTask != null) {
       return;
     }
 
@@ -126,17 +143,115 @@ public class Fabrishot {
     FileFormat format = Config.CAPTURE_FILE_FORMAT;
     Path file = getScreenshotFile(minecraft, format);
     task = new CaptureTask(file, format);
+    resizeForCapture(file, () -> task = null);
+  }
+
+  public static void startStackCapture() {
+    if (task != null) {
+      return;
+    }
+
+    Minecraft minecraft = Minecraft.getInstance();
+
+    if (stackTask != null) {
+      if (stackTask.isCapturing() || pendingStackCapture != null) {
+        printNotice(Component.translatable("fabrishot.notice.stack_busy"));
+        return;
+      }
+
+      PendingStackCapture pending = prepareStackCapture(minecraft);
+
+      if (pending != null) {
+        pendingStackCapture = pending;
+        printNotice(Component.translatable("fabrishot.notice.stack_queued"));
+      }
+
+      return;
+    }
+
+    PendingStackCapture pending = prepareStackCapture(minecraft);
+
+    if (pending != null) {
+      beginStackCapture(pending);
+    }
+  }
+
+  // A mess of warnings.
+  private static PendingStackCapture prepareStackCapture(Minecraft minecraft) {
+    Component error = validateCaptureSize();
+
+    if (error != null) {
+      printError(error);
+      return null;
+    }
+
+    error = validateStackMemory();
+
+    if (error != null) {
+      printError(error);
+      return null;
+    }
+
+    warnAboutManyFrames();
+
+    FileFormat format = Config.CAPTURE_FILE_FORMAT;
+
+    return new PendingStackCapture(
+        getScreenshotFile(minecraft, format),
+        format,
+        Config.CAPTURE_WIDTH,
+        Config.CAPTURE_HEIGHT);
+  }
+
+  private static void beginStackCapture(PendingStackCapture pending) {
+    Component error = validateStackMemory(pending.width(), pending.height());
+
+    if (error != null) {
+      printError(error);
+      releaseScreenshotFile(pending.file());
+      return;
+    }
+
+    Minecraft minecraft = Minecraft.getInstance();
+    KeyMapping.releaseAll();
+    minecraft.mouseHandler.setIgnoreFirstMove();
+
+    stackTask =
+        new StackingCaptureTask(
+            pending.file(), pending.format(), pending.width(), pending.height());
+    resizeForCapture(pending.file(), () -> stackTask = null);
+  }
+
+  private static void startPendingStackCapture() {
+    PendingStackCapture pending = pendingStackCapture;
+
+    if (stackTask != null || pending == null) {
+      return;
+    }
+
+    pendingStackCapture = null;
+    beginStackCapture(pending);
+  }
+
+  private static void warnAboutManyFrames() {
+    if (Config.STACK_COUNT > MANY_FRAMES_WARNING) {
+      printNoticeOnce(
+          "stack_frames",
+          Component.translatable("fabrishot.notice.stack_frames", Config.STACK_COUNT));
+    }
+  }
+
+  private static void resizeForCapture(Path file, Runnable clearTask) {
+    int width = captureWidth();
+    int height = captureHeight();
 
     try {
       refresh();
     } catch (RuntimeException exception) {
       // The device could not allocate a capture sized framebuffer, so keep the window size.
       LOGGER.error(
-          "Could not resize the framebuffer to {}x{}",
-          Config.CAPTURE_WIDTH,
-          Config.CAPTURE_HEIGHT,
-          exception);
-      task = null;
+          "Could not resize the framebuffer to {}x{}", width, height, exception);
+      clearTask.run();
       releaseScreenshotFile(file);
 
       try {
@@ -146,8 +261,7 @@ public class Fabrishot {
       }
 
       printError(
-          Component.translatable(
-              "fabrishot.error.capture_failed", Config.CAPTURE_WIDTH, Config.CAPTURE_HEIGHT));
+          Component.translatable("fabrishot.error.capture_failed", width, height));
     }
   }
 
@@ -186,6 +300,40 @@ public class Fabrishot {
     return null;
   }
 
+  private static Component validateStackMemory() {
+    return validateStackMemory(Config.CAPTURE_WIDTH, Config.CAPTURE_HEIGHT);
+  }
+
+  private static Component validateStackMemory(int width, int height) {
+    long pixels = (long) width * height;
+    long bytesPerPixel =
+        stackBytesPerPixel() + 4L * StackingCaptureTask.MAX_IN_FLIGHT_FRAMES;
+    long required = pixels * bytesPerPixel;
+
+    Runtime runtime = Runtime.getRuntime();
+    long maxHeap = runtime.maxMemory();
+    long usedHeap = runtime.totalMemory() - runtime.freeMemory();
+    long safeAvailable = Math.min(maxHeap / 2, maxHeap - usedHeap - STACK_MEMORY_MARGIN);
+    safeAvailable = Math.max(0L, safeAvailable);
+
+    if (required <= safeAvailable) {
+      return null;
+    }
+
+    long requiredMb = required / (1024L * 1024L);
+    long availableMb = safeAvailable / (1024L * 1024L);
+    return Component.translatable(
+        "fabrishot.error.stack_memory", width, height, requiredMb, availableMb);
+  }
+
+  private static long stackBytesPerPixel() {
+    if (Config.STACK_MODE == null || !Config.STACK_MODE.isMean()) {
+      return 4L;
+    }
+
+    return Config.STACK_LOW_MEMORY ? 6L : 12L;
+  }
+
   private static int bytesPerPixel() {
     var colorTexture = Minecraft.getInstance().gameRenderer.mainRenderTarget().getColorTexture();
     return colorTexture == null ? DEFAULT_BYTES_PER_PIXEL : colorTexture.getFormat().blockSize();
@@ -213,6 +361,22 @@ public class Fabrishot {
       task = null;
       refresh();
     }
+
+    StackingCaptureTask stacking = stackTask;
+
+    if (stacking != null) {
+      boolean wasCapturing = stacking.isCapturing();
+
+      if (stacking.onRenderTick()) {
+        stackTask = null;
+      }
+
+      if (wasCapturing && !stacking.isCapturing()) {
+        refresh();
+      }
+    }
+
+    startPendingStackCapture();
   }
 
   private static void refresh() {
@@ -273,6 +437,52 @@ public class Fabrishot {
   }
 
   public static boolean isInCapture() {
-    return task != null;
+    StackingCaptureTask stacking = stackTask;
+
+    return task != null || (stacking != null && stacking.isCapturing());
   }
+
+  public static int captureWidth() {
+    StackingCaptureTask stacking = stackTask;
+
+    return stacking != null && stacking.isCapturing()
+        ? stacking.width()
+        : Config.CAPTURE_WIDTH;
+  }
+
+  public static int captureHeight() {
+    StackingCaptureTask stacking = stackTask;
+
+    return stacking != null && stacking.isCapturing()
+        ? stacking.height()
+        : Config.CAPTURE_HEIGHT;
+  }
+
+  public static boolean isStackCaptureInProgress() {
+    StackingCaptureTask stacking = stackTask;
+
+    return stacking != null && stacking.isCapturing();
+  }
+
+  public static boolean hasPendingStackCapture() {
+    return pendingStackCapture != null;
+  }
+
+  public static void interruptStackCapture() {
+    PendingStackCapture pending = pendingStackCapture;
+
+    if (pending != null) {
+      pendingStackCapture = null;
+      releaseScreenshotFile(pending.file());
+      LOGGER.info("Cancelled the queued stacking capture for {}", pending.file());
+    }
+
+    StackingCaptureTask stacking = stackTask;
+
+    if (stacking != null) {
+      stacking.interrupt();
+    }
+  }
+
+  private record PendingStackCapture(Path file, FileFormat format, int width, int height) {}
 }
